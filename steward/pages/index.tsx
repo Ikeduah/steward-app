@@ -115,8 +115,8 @@ export default function Home() {
         </h1>
 
         <p className="text-lg md:text-2xl text-slate-400 max-w-3xl mb-14 leading-relaxed font-medium">
-          Steward is a premium inventory system designed for <span className="text-white font-bold">organizations and modern enterprises</span>.
-          Track assignments, monitor equipment health, and maintain total accountability in a workspace that feels <span className="text-emerald-400">alive</span>.
+          Steward is a premium inventory and accountability system for <span className="text-white font-bold">teams that share equipment</span>.
+          Track assignments, monitor equipment health, and maintain total accountability in a workspace that feels alive whether you’re managing gear for <span className="text-emerald-400">academia, organizations, or modern enterprises</span>.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto">
