@@ -108,15 +108,15 @@ export default function Home() {
         </div>
 
         <h1 className="text-6xl md:text-[7rem] font-black tracking-tighter text-white mb-10 leading-[0.85]">
-          Manage Gear <br />
+          Manage shared equipment<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">
-            Like a Pro.
+            with confidence.
           </span>
         </h1>
 
         <p className="text-lg md:text-2xl text-slate-400 max-w-3xl mb-14 leading-relaxed font-medium">
-          Steward is a premium inventory and accountability system for <span className="text-white font-bold">teams that share equipment</span>.
-          Track assignments, monitor equipment health, and maintain total accountability in a workspace that feels alive whether you’re managing gear for <span className="text-emerald-400">academia, organizations, or modern enterprises</span>.
+          Steward is a premium inventory and accountability system for <span className="text-white font-bold">teams that share equipment</span> across <span className="text-emerald-400">academic institutions, organizations, and modern enterprises</span>.
+          Track assignments, monitor equipment health, and maintain total accountability in a workspace that feels alive.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto">
@@ -131,7 +131,7 @@ export default function Home() {
           <SignedIn>
             <Link href="/dashboard" className="w-full sm:w-auto">
               <button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4.5 px-12 rounded-2xl text-xl transition-all transform hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2 group">
-                Go to Dashboard
+                Go to App
                 <ChevronRight className="w-6 h-6 group-hover:translate-x-1.5 transition-transform" />
               </button>
             </Link>
@@ -152,14 +152,14 @@ export default function Home() {
               <Shield className="w-7 h-7 text-emerald-400" />
             </div>
             <h3 className="font-bold text-xl text-white mb-3 tracking-tight">Total Accountability</h3>
-            <p className="text-slate-400 font-medium leading-relaxed">Trace every checkout, return, and incident back to your specific team members instantly.</p>
+            <p className="text-slate-400 font-medium leading-relaxed">Trace every checkout, return, and incident back to specific team members instantly.</p>
           </div>
           <div className="p-8 rounded-[2.5rem] glass-card text-left">
             <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6">
               <Cpu className="w-7 h-7 text-emerald-400" />
             </div>
             <h3 className="font-bold text-xl text-white mb-3 tracking-tight">Real-time Pulse</h3>
-            <p className="text-slate-400 font-medium leading-relaxed">Instant tracking of equipment health, locations, and maintenance needs as they happen.</p>
+            <p className="text-slate-400 font-medium leading-relaxed">Stay on top of equipment status, availability, and maintenance needs as they happen.</p>
           </div>
         </div>
       </main>

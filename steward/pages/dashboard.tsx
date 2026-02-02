@@ -1,308 +1,300 @@
-import { SignedIn, SignedOut, SignInButton, Protect, useAuth, useOrganization } from "@clerk/nextjs";
-import { useState, useMemo } from "react";
+import { SignedIn, SignedOut, SignInButton, useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 import useSWR from "swr";
 import { Layout } from "@/components/Layout";
 import { StatCard } from "@/components/StatCard";
-import { ClipboardList, CheckCircle, AlertOctagon } from "lucide-react";
+import {
+    CheckCircle,
+    AlertOctagon,
+    AlertTriangle,
+    Package,
+    Wrench,
+    Search,
+    ArrowRight,
+    TrendingUp,
+    DollarSign
+} from "lucide-react";
+import {
+    PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+    LineChart, Line, XAxis, YAxis, CartesianGrid,
+    BarChart, Bar
+} from "recharts";
+import { getDashboardSummary } from "@/lib/api";
+import { DashboardData } from "@/types/dashboard";
+import { useState, useEffect } from "react";
+
+const COLORS = ['#10B981', '#F59E0B', '#EF4444']; // Good, Needs Attention, Out of Service
 
 export default function Dashboard() {
     const { getToken, isLoaded, userId } = useAuth();
+    const { user } = useUser();
     const router = useRouter();
-    const { memberships } = useOrganization({
-        memberships: {
-            pageSize: 50,
-            keepPreviousData: true,
-        },
-    });
-    const [adminMsg, setAdminMsg] = useState("");
+    const [mounted, setMounted] = useState(false);
 
-    // Fetch activity logs
-    const { data: activityLogs } = useSWR(
-        isLoaded && userId ? ["/api/activity", userId] : null,
-        async ([url]) => {
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const { data: dashboardData, error } = useSWR<DashboardData>(
+        isLoaded && userId ? ["/api/dashboard/summary", userId] : null,
+        async () => {
             const token = await getToken();
-            const res = await fetch(url, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            return res.json();
+            return getDashboardSummary(token || "");
         }
     );
 
-    // Fetch subscription plan
-    const { data: planInfo } = useSWR(
-        isLoaded && userId ? ["/api/billing/plan", userId] : null,
-        async ([url]) => {
-            const token = await getToken();
-            const res = await fetch(url, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            return res.json();
-        }
-    );
+    if (!isLoaded || !mounted) return <Layout><div>Loading...</div></Layout>;
 
-    // Fetch incidents (for Repair Queue - Pro feature)
-    const { data: incidents } = useSWR(
-        isLoaded && userId && planInfo?.plan === 'pro' ? ["/api/incidents?status=Open&severity=High", userId] : null,
-        async ([url]) => {
-            const token = await getToken();
-            const res = await fetch(url, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            return res.json();
-        }
-    );
-
-    // Fetch assets (for stats)
-    const { data: assets } = useSWR(
-        isLoaded && userId ? ["/api/assets", userId] : null,
-        async ([url]) => {
-            const token = await getToken();
-            const res = await fetch(url, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            return res.json();
-        }
-    );
-
-    // Calculate stats
-    const checkedOutCount = Array.isArray(assets) ? assets.filter((a: any) => a.status === "Checked Out").length : 0;
-    const availableCount = Array.isArray(assets) ? assets.filter((a: any) => a.status === "Available").length : 0;
-    const needsAttentionCount = Array.isArray(assets) ? assets.filter((a: any) =>
-        a.status === "Maintenance" || a.status === "Retired"
-    ).length : 0;
-
-    // Memoized user map for O(1) lookups
-    const userMap = useMemo(() => {
-        const map: Record<string, string> = {};
-        if (memberships?.data) {
-            memberships.data.forEach((m: any) => {
-                const uid = m.publicUserData?.userId;
-                if (uid) {
-                    const firstName = m.publicUserData?.firstName || "";
-                    const lastName = m.publicUserData?.lastName || "";
-                    map[uid] = `${firstName} ${lastName}`.trim() || uid;
-                }
-            });
-        }
-        return map;
-    }, [memberships?.data]);
-
-    // Helper to format activity event types and colors
-    const getActivityDetails = (log: any) => {
-        const d = log.details || {};
-        switch (log.event_type) {
-            case 'created':
-                return { label: 'New Asset', color: 'bg-green-50 text-green-700', msg: 'Added to inventory' };
-            case 'updated':
-                if (d.new_status) {
-                    return { label: d.new_status, color: 'bg-blue-50 text-blue-700', msg: `Status changed to ${d.new_status}` };
-                }
-                return { label: 'Updated', color: 'bg-blue-50 text-blue-700', msg: 'Asset details modified' };
-            case 'checked_out':
-                return { label: 'Checked Out', color: 'bg-red-50 text-red-700', msg: 'Assigned to teammate' };
-            case 'checked_in':
-                return { label: 'Returned', color: 'bg-green-50 text-green-700', msg: 'Returned to stock' };
-            case 'deleted':
-                return { label: 'Deleted', color: 'bg-gray-100 text-gray-700', msg: 'Removed from system' };
-            case 'incident_reported':
-                return { label: 'Issue', color: 'bg-orange-50 text-orange-700', msg: d.title || 'New incident reported' };
-            case 'incident_updated':
-                if (d.action === 'archived') return { label: 'Archived', color: 'bg-gray-100 text-gray-700', msg: 'Incident archived' };
-                if (d.new_status) return { label: d.new_status, color: 'bg-orange-50 text-orange-700', msg: `Issue marked as ${d.new_status}` };
-                return { label: 'Issue Updated', color: 'bg-orange-50 text-orange-700', msg: 'Incident updated' };
-            default:
-                const cleanLabel = log.event_type.replace(/_/g, ' ').replace(/\b\w/g, (l: any) => l.toUpperCase());
-                return { label: cleanLabel, color: 'bg-gray-50 text-gray-700', msg: 'Activity recorded' };
-        }
-    };
-
-    const getUserName = (actorUserId: string | null) => {
-        if (!actorUserId) return null;
-        return userMap[actorUserId] || null;
-    };
-
-
+    // Prepare chart data
+    const healthData = dashboardData ? [
+        { name: 'Good', value: dashboardData.healthBreakdown.good },
+        { name: 'Needs Attention', value: dashboardData.healthBreakdown.needsAttention },
+        { name: 'Out of Service', value: dashboardData.healthBreakdown.outOfService },
+    ] : [];
 
     return (
         <Layout>
-            <div className="space-y-8">
+            <div className="space-y-8 max-w-7xl mx-auto pb-10">
                 {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-black">Dashboard</h1>
-                    <p className="text-gray-500 mt-2">Overview of your inventory status.</p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+                        <p className="text-slate-500 mt-1">Overview of your inventory status and value.</p>
+                    </div>
+                    {dashboardData?.valueAtRisk && (
+                        <div className="bg-white px-4 py-2 border rounded-xl shadow-sm flex items-center gap-3">
+                            <div className="p-2 bg-emerald-50 rounded-lg">
+                                <DollarSign className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Value at Risk</p>
+                                <p className="text-lg font-bold text-slate-900">
+                                    ${dashboardData.valueAtRisk.totalValue.toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <SignedOut>
-                    <div className="p-6 border rounded-lg bg-white shadow-sm text-center">
-                        <p className="mb-4">You are currently signed out.</p>
+                    <div className="p-10 border rounded-2xl bg-white shadow-sm text-center">
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Welcome to Steward</h3>
+                        <p className="text-slate-500 mb-6">Sign in to manage your equipment inventory.</p>
                         <SignInButton mode="modal">
-                            <button className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors">
-                                Sign in to view dashboard
+                            <button className="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-full hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-500/20">
+                                Sign In
                             </button>
                         </SignInButton>
                     </div>
                 </SignedOut>
 
                 <SignedIn>
-                    {/* Stats Grid - High Density */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        <StatCard
-                            label="Available"
-                            value={availableCount.toString()}
-                            subtext="Ready for use"
-                            icon={CheckCircle}
-                            variant="success"
-                        />
-                        <StatCard
-                            label="Checked Out"
-                            value={checkedOutCount.toString()}
-                            subtext="Active assignments"
-                            icon={ClipboardList}
-                            variant="default"
-                        />
-                        <Protect role="org:admin">
-                            <StatCard
-                                label="Needs Attention"
-                                value={needsAttentionCount.toString()}
-                                subtext="Repair or maintenance"
-                                icon={AlertOctagon}
-                                variant="warning"
-                            />
-                        </Protect>
-                    </div>
-
-                    {/* Content Areas - Stack on mobile */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Recent Activity */}
-                        <Protect role="org:admin">
-                            <div
-                                onClick={() => router.push('/activity')}
-                                className="p-5 sm:p-6 border border-gray-100 rounded-2xl bg-white shadow-sm min-h-[300px] cursor-pointer hover:border-gray-300 transition-all group"
-                            >
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-bold text-lg text-gray-900">Recent Activity</h3>
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 px-2 py-1 rounded-md group-hover:bg-black group-hover:text-white transition-colors">View All</span>
-                                </div>
-                                {!Array.isArray(activityLogs) || activityLogs.length === 0 ? (
-                                    <div className="text-gray-500 text-sm italic">No recent activity found.</div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {activityLogs.slice(0, 5).map((log: any) => {
-                                            const timestamp = new Date(log.created_at);
-                                            const now = new Date();
-                                            const diffMs = now.getTime() - timestamp.getTime();
-                                            const diffMins = Math.floor(diffMs / 60000);
-                                            const diffHours = Math.floor(diffMins / 60);
-                                            const diffDays = Math.floor(diffHours / 24);
-
-                                            let timeAgo = "";
-                                            if (diffDays > 0) timeAgo = `${diffDays}d ago`;
-                                            else if (diffHours > 0) timeAgo = `${diffHours}h ago`;
-                                            else if (diffMins > 0) timeAgo = `${diffMins}m ago`;
-                                            else timeAgo = "Just now";
-
-                                            const details = getActivityDetails(log);
-
-                                            return (
-                                                <div key={log.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 overflow-hidden">
-                                                            <span className="font-bold text-gray-900 truncate text-sm">{log.asset_name || `Asset #${log.asset_id}`}</span>
-                                                        </div>
-                                                        <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">
-                                                            {details.msg}
-                                                        </p>
-                                                        <div className="flex items-center gap-2 mt-1.5">
-                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{timeAgo}</span>
-                                                            {log.actor_id && (
-                                                                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1">
-                                                                    <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
-                                                                    {log.actor_id === 'system' ? 'System' : (getUserName(log.actor_id) || 'User')}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                    {!dashboardData ? (
+                        <div className="p-12 text-center text-slate-400">Loading dashboard data...</div>
+                    ) : (
+                        <>
+                            {/* Section 1: Status Summary Cards */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                                <StatCard
+                                    label="Total Assets"
+                                    value={dashboardData.counts.totalAssets}
+                                    icon={Package}
+                                    variant="default"
+                                />
+                                <StatCard
+                                    label="Checked Out"
+                                    value={dashboardData.counts.checkedOut}
+                                    icon={CheckCircle}
+                                    variant="default"
+                                />
+                                <StatCard
+                                    label="Overdue"
+                                    value={dashboardData.counts.overdue}
+                                    icon={AlertTriangle}
+                                    variant="danger"
+                                />
+                                <StatCard
+                                    label="In Repair"
+                                    value={dashboardData.counts.repair}
+                                    icon={Wrench}
+                                    variant="warning"
+                                />
+                                <StatCard
+                                    label="Missing"
+                                    value={dashboardData.counts.missing}
+                                    icon={Search}
+                                    variant="danger"
+                                />
                             </div>
-                        </Protect>
 
-                        {/* Pro Modules: Repair Queue & Overdue Trends */}
-                        <Protect role="org:admin">
-                            <div className="space-y-6">
-                                {/* Repair Queue (Pro Only) */}
-                                <div className={`p-5 sm:p-6 border rounded-2xl bg-white shadow-sm min-h-[150px] relative overflow-hidden ${planInfo?.plan !== 'pro' ? 'border-dashed border-gray-200' : 'border-gray-100'}`}>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <AlertOctagon className="w-5 h-5 text-orange-500" />
-                                            <h3 className="font-bold text-lg text-gray-900">Repair Queue</h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Section 2: Actionable Lists columns (taking up 2 columns) */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    {/* Actionable Lists Container */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Overdue Assignments */}
+                                        <div className="bg-white border rounded-2xl p-6 shadow-sm">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                                                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                                                    Overdue Assignments
+                                                </h3>
+                                                <span className="text-xs font-bold bg-red-50 text-red-600 px-2.5 py-1 rounded-full">{dashboardData.lists.overdueAssignments.length}</span>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {dashboardData.lists.overdueAssignments.length === 0 ? (
+                                                    <div className="text-sm text-slate-400 italic py-2">No overdue items. Great job!</div>
+                                                ) : (
+                                                    dashboardData.lists.overdueAssignments.slice(0, 5).map((item, i) => (
+                                                        <div key={i} className="flex justify-between items-center p-3 hover:bg-slate-50 rounded-xl border border-transparent hover:border-slate-100 transition-colors cursor-pointer group">
+                                                            <div>
+                                                                <p className="font-bold text-slate-900 text-sm">{item.name}</p>
+                                                                <p className="text-xs text-slate-500 mt-0.5">{item.assignee} • Due {item.dueDate}</p>
+                                                            </div>
+                                                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
                                         </div>
-                                        {planInfo?.plan === 'pro' && (
-                                            <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md">
-                                                {incidents?.length || 0} Critical
-                                            </span>
-                                        )}
+
+                                        {/* Missing / Repair */}
+                                        <div className="bg-white border rounded-2xl p-6 shadow-sm">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                                                    <Wrench className="w-5 h-5 text-amber-500" />
+                                                    Attention Required
+                                                </h3>
+                                                <span className="text-xs font-bold bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full">
+                                                    {dashboardData.lists.repairAssets.length + dashboardData.lists.missingAssets.length}
+                                                </span>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {[...dashboardData.lists.missingAssets, ...dashboardData.lists.repairAssets].length === 0 ? (
+                                                    <div className="text-sm text-slate-400 italic py-2">All equipment accounted for and functional.</div>
+                                                ) : (
+                                                    [...dashboardData.lists.missingAssets, ...dashboardData.lists.repairAssets].slice(0, 5).map((item, i) => (
+                                                        <div key={i} className="flex justify-between items-center p-3 hover:bg-slate-50 rounded-xl border border-transparent hover:border-slate-100 transition-colors cursor-pointer group">
+                                                            <div>
+                                                                <p className="font-bold text-slate-900 text-sm">{item.name}</p>
+                                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                                    <span className={item.status === 'Missing' ? 'text-red-500 font-bold' : 'text-amber-500 font-bold'}>
+                                                                        {item.status}
+                                                                    </span>
+                                                                    {item.value && ` • $${item.value}`}
+                                                                </p>
+                                                            </div>
+                                                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {planInfo?.plan === 'pro' ? (
-                                        <div className="space-y-2">
-                                            {(!incidents || incidents.length === 0) ? (
-                                                <p className="text-gray-400 text-sm">No critical repairs pending.</p>
-                                            ) : (
-                                                incidents.slice(0, 3).map((inc: any) => (
-                                                    <div key={inc.id} className="flex justify-between items-center text-sm p-2 bg-gray-50 rounded-lg">
-                                                        <span className="font-medium truncate max-w-[150px]">Asset #{inc.asset_id}</span>
-                                                        <span className="text-red-500 font-bold text-xs">{inc.severity}</span>
-                                                    </div>
-                                                ))
-                                            )}
+                                    {/* Charts Section */}
+                                    <div className="bg-white border rounded-2xl p-6 shadow-sm">
+                                        <h3 className="font-bold text-slate-900 mb-6">Overdue Trends (30 Days)</h3>
+                                        <div className="h-[250px] w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={dashboardData.overdueTrend}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} dy={10} />
+                                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
+                                                    <RechartsTooltip
+                                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                        cursor={{ stroke: '#10B981', strokeWidth: 2 }}
+                                                    />
+                                                    <Line type="monotone" dataKey="overdueCount" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: '#10B981', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                                                </LineChart>
+                                            </ResponsiveContainer>
                                         </div>
-                                    ) : (
-                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex flex-col items-center justify-center text-center p-4">
-                                            <p className="text-sm font-bold text-gray-400 mb-2">Pro Feature</p>
-                                            <button onClick={() => router.push('/pricing')} className="px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-full hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-500/20">
-                                                Upgrade to Unlock
-                                            </button>
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
 
-                                {/* Overdue Trends (Pro Only) */}
-                                <div className={`p-5 sm:p-6 border rounded-2xl bg-white shadow-sm min-h-[150px] relative overflow-hidden ${planInfo?.plan !== 'pro' ? 'border-dashed border-gray-200' : 'border-gray-100'}`}>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="font-bold text-lg text-gray-900">Overdue Trends</h3>
-                                        {planInfo?.plan === 'pro' && (
-                                            <span className="text-[10px] font-bold text-gray-400">LAST 30 DAYS</span>
-                                        )}
+                                {/* Right Column: Insights & More Charts */}
+                                <div className="space-y-6">
+                                    {/* Steward Insights Panel */}
+                                    <div className="bg-emerald-900 text-white rounded-2xl p-6 shadow-lg overflow-hidden relative">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-20 translate-x-10 -translate-y-10"></div>
+                                        <div className="relative z-10">
+                                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                                <TrendingUp className="w-5 h-5 text-emerald-400" />
+                                                Steward Insights
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {dashboardData.insights.map((insight, i) => (
+                                                    <div key={i} className="flex gap-3 text-sm font-medium text-emerald-50">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                                        <p>{insight}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {planInfo?.plan === 'pro' ? (
-                                        <div className="h-20 flex items-end gap-2 justify-between px-2">
-                                            {/* Fake chart bars for demo */}
-                                            {[40, 65, 30, 80, 50, 20, 45].map((h, i) => (
-                                                <div key={i} className="w-full bg-emerald-100 rounded-t-sm hover:bg-emerald-200 transition-colors relative group" style={{ height: `${h}%` }}>
-                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 text-[10px] font-bold text-emerald-700 bg-white px-1 shadow-sm rounded">
-                                                        {h}
+                                    {/* Equipment Health */}
+                                    <div className="bg-white border rounded-2xl p-6 shadow-sm">
+                                        <h3 className="font-bold text-slate-900 mb-4">Equipment Health</h3>
+                                        <div className="h-[200px] w-full relative">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={healthData}
+                                                        innerRadius={60}
+                                                        outerRadius={80}
+                                                        paddingAngle={5}
+                                                        dataKey="value"
+                                                    >
+                                                        {healthData.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                        ))}
+                                                    </Pie>
+                                                    <RechartsTooltip />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                            {/* Centered Total */}
+                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                <div className="text-center">
+                                                    <span className="text-3xl font-bold text-slate-900">{dashboardData.counts.totalAssets}</span>
+                                                    <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Total</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-center gap-4 mt-2">
+                                            {healthData.map((entry, index) => (
+                                                <div key={index} className="flex items-center gap-1.5">
+                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index] }}></div>
+                                                    <span className="text-xs font-bold text-slate-600">{entry.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Most Checked Out */}
+                                    <div className="bg-white border rounded-2xl p-6 shadow-sm">
+                                        <h3 className="font-bold text-slate-900 mb-4">Most Popular Gear</h3>
+                                        <div className="space-y-4">
+                                            {dashboardData.topAssets.map((asset, i) => (
+                                                <div key={i}>
+                                                    <div className="flex justify-between text-sm mb-1">
+                                                        <span className="font-medium text-slate-700 truncate max-w-[180px]">{asset.name}</span>
+                                                        <span className="font-bold text-emerald-600">{asset.checkoutCount} checkouts</span>
+                                                    </div>
+                                                    <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                                        <div
+                                                            className="bg-emerald-500 h-1.5 rounded-full"
+                                                            style={{ width: `${(asset.checkoutCount / Math.max(...dashboardData.topAssets.map(a => a.checkoutCount))) * 100}%` }}
+                                                        ></div>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
-                                    ) : (
-                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex flex-col items-center justify-center text-center p-4">
-                                            <p className="text-sm font-bold text-gray-400 mb-2">Pro Feature</p>
-                                            <button onClick={() => router.push('/pricing')} className="px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-full hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-500/20">
-                                                Upgrade to Unlock
-                                            </button>
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
                             </div>
-                        </Protect>
-                    </div>
+                        </>
+                    )}
                 </SignedIn>
             </div>
         </Layout>
