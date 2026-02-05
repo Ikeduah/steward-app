@@ -21,6 +21,7 @@ engine = create_engine(
     pool_pre_ping=True,
 )
 
+
 from sqlalchemy.ext.declarative import declarative_base
 
 # ... (previous imports)
