@@ -12,12 +12,12 @@ def get_database_url() -> str:
     url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
     
     if url:
-        # SQLAlchemy requires 'postgresql://' or 'postgresql+psycopg://'.
-        # Since we have psycopg (v3) installed, we'll explicitly use it.
+        # SQLAlchemy requires 'postgresql://' with driver specification.
+        # We're using psycopg2-binary, so we need postgresql+psycopg2://
         if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql+psycopg://", 1)
+            url = url.replace("postgres://", "postgresql+psycopg2://", 1)
         elif url.startswith("postgresql://"):
-            url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+            url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
         return url
         
     # Fallback to local SQLite for development only

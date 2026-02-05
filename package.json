@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@clerk/nextjs": "^6.36.8",
-    "@microsoft/fetch-event-source": "^2.0.1"
-  }
-}

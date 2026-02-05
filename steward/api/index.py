@@ -12,7 +12,7 @@ sys.path.append(str(Path(__file__).parent))
 from app.core.security import clerk_guard
 from app.core.config import get_database_url
 from app.core.db import Base, engine
-from app.routers import assets, assignments, activity, incidents, billing
+from app.routers import assets, assignments, activity, incidents, billing, dashboard
 from app.models.assignment import Assignment 
 from app.models.activity import ActivityLog 
 from app.models.incident import Incident 
@@ -43,6 +43,8 @@ app.include_router(assignments.router, prefix="/assignments", tags=["Assignments
 app.include_router(activity.router, prefix="/activity", tags=["Activity"])
 app.include_router(incidents.router, prefix="/incidents", tags=["Incidents"])
 app.include_router(billing.router, prefix="/billing", tags=["Billing"])
+app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+
 
 @app.get("/health")
 def health():

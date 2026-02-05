@@ -5,6 +5,7 @@ from fastapi_clerk_auth import HTTPAuthorizationCredentials
 
 from app.core.debs import get_db
 from app.core.security import clerk_guard
+from app.core.cache import invalidate_dashboard_cache
 from app.models.asset import Asset
 from app.models.activity import ActivityLog
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse
@@ -97,6 +98,10 @@ async def create_asset(
     
     db.commit()
     db.refresh(db_asset)
+    
+    # Invalidate dashboard cache since asset data changed
+    invalidate_dashboard_cache(org_id)
+    
     return db_asset
 
 @router.get("/{asset_id}", response_model=AssetResponse)
@@ -174,4 +179,8 @@ def delete_asset(
     
     db.delete(db_asset)
     db.commit()
+    
+    # Invalidate dashboard cache
+    invalidate_dashboard_cache(org_id)
+    
     return {"message": "Asset deleted successfully"}

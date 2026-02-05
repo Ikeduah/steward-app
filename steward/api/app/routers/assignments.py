@@ -6,6 +6,7 @@ from fastapi_clerk_auth import HTTPAuthorizationCredentials
 
 from app.core.debs import get_db
 from app.core.security import clerk_guard
+from app.core.cache import invalidate_dashboard_cache
 from app.models.assignment import Assignment
 from app.models.asset import Asset
 from app.models.activity import ActivityLog
@@ -61,6 +62,10 @@ def checkout_asset(
     
     db.commit()
     db.refresh(db_assignment)
+    
+    # Invalidate dashboard cache since assignment data changed
+    invalidate_dashboard_cache(org_id)
+    
     return db_assignment
 
 @router.post("/checkin/{asset_id}", response_model=AssignmentResponse)
@@ -104,6 +109,10 @@ def checkin_asset(
     
     db.commit()
     db.refresh(assignment)
+    
+    # Invalidate dashboard cache
+    invalidate_dashboard_cache(org_id)
+    
     return assignment
 
 @router.get("/active", response_model=List[AssignmentResponse])

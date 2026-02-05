@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Float
 from sqlalchemy.sql import func
 from app.core.db import Base
 
@@ -14,6 +14,7 @@ class Asset(Base):
     
     qr_code = Column(String, unique=True, index=True, nullable=True)
     image_url = Column(String, nullable=True)
+    estimated_value = Column(Float, nullable=True)  # For value-at-risk calculations
     
     # User tracking
     created_by = Column(String, nullable=True)  # Clerk User ID

@@ -127,6 +127,66 @@ export default function Dashboard() {
                                 />
                             </div>
 
+                            {/* Equipment Health and Overdue Trends - Moved up */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Overdue Trends */}
+                                <div className="bg-white border rounded-2xl p-6 shadow-sm">
+                                    <h3 className="font-bold text-slate-900 mb-6">Overdue Trends (30 Days)</h3>
+                                    <div className="h-[250px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={dashboardData.overdueTrend}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} dy={10} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
+                                                <RechartsTooltip
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                    cursor={{ stroke: '#10B981', strokeWidth: 2 }}
+                                                />
+                                                <Line type="monotone" dataKey="overdueCount" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: '#10B981', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                {/* Equipment Health */}
+                                <div className="bg-white border rounded-2xl p-6 shadow-sm">
+                                    <h3 className="font-bold text-slate-900 mb-4">Equipment Health</h3>
+                                    <div className="h-[200px] w-full relative">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={healthData}
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                >
+                                                    {healthData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <RechartsTooltip />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                        {/* Centered Total */}
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div className="text-center">
+                                                <span className="text-3xl font-bold text-slate-900">{dashboardData.counts.totalAssets}</span>
+                                                <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Total</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-center gap-4 mt-2">
+                                        {healthData.map((entry, index) => (
+                                            <div key={index} className="flex items-center gap-1.5">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index] }}></div>
+                                                <span className="text-xs font-bold text-slate-600">{entry.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 {/* Section 2: Actionable Lists columns (taking up 2 columns) */}
                                 <div className="lg:col-span-2 space-y-6">
@@ -191,25 +251,6 @@ export default function Dashboard() {
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Charts Section */}
-                                    <div className="bg-white border rounded-2xl p-6 shadow-sm">
-                                        <h3 className="font-bold text-slate-900 mb-6">Overdue Trends (30 Days)</h3>
-                                        <div className="h-[250px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <LineChart data={dashboardData.overdueTrend}>
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} dy={10} />
-                                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
-                                                    <RechartsTooltip
-                                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                                        cursor={{ stroke: '#10B981', strokeWidth: 2 }}
-                                                    />
-                                                    <Line type="monotone" dataKey="overdueCount" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: '#10B981', strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                                                </LineChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 {/* Right Column: Insights & More Charts */}
@@ -230,44 +271,6 @@ export default function Dashboard() {
                                                     </div>
                                                 ))}
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Equipment Health */}
-                                    <div className="bg-white border rounded-2xl p-6 shadow-sm">
-                                        <h3 className="font-bold text-slate-900 mb-4">Equipment Health</h3>
-                                        <div className="h-[200px] w-full relative">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={healthData}
-                                                        innerRadius={60}
-                                                        outerRadius={80}
-                                                        paddingAngle={5}
-                                                        dataKey="value"
-                                                    >
-                                                        {healthData.map((entry, index) => (
-                                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                        ))}
-                                                    </Pie>
-                                                    <RechartsTooltip />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                            {/* Centered Total */}
-                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                <div className="text-center">
-                                                    <span className="text-3xl font-bold text-slate-900">{dashboardData.counts.totalAssets}</span>
-                                                    <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Total</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-center gap-4 mt-2">
-                                            {healthData.map((entry, index) => (
-                                                <div key={index} className="flex items-center gap-1.5">
-                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index] }}></div>
-                                                    <span className="text-xs font-bold text-slate-600">{entry.name}</span>
-                                                </div>
-                                            ))}
                                         </div>
                                     </div>
 
