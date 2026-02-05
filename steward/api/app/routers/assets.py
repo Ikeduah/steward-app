@@ -42,14 +42,24 @@ def get_user_id(creds: HTTPAuthorizationCredentials = Depends(clerk_guard)) -> s
 def require_admin(creds: HTTPAuthorizationCredentials = Depends(clerk_guard)):
     claims = creds.decoded
     
-    # Check org role
-    role = claims.get("org_role") or (claims.get("o") or {}).get("r")
+    # Check org role - handle both full and minified claims
+    role = None
     
-    if role != "org:admin":
+    # Path 1: org_role (full format)
+    if claims.get("org_role"):
+        role = claims.get("org_role")
+    
+    # Path 2: minified format (o.rol) - this is what Clerk actually uses
+    elif claims.get("o") and isinstance(claims.get("o"), dict):
+        role = claims["o"].get("rol")  # Note: it's "rol", not "r"
+    
+    # Accept "admin" role (Clerk sends just "admin", not "org:admin")
+    if role != "admin" and role != "org:admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required for this action"
         )
+    
     return True
 
 @router.get("", response_model=List[AssetResponse])
