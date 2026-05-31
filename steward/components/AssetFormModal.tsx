@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { X, Upload, Loader2 } from "lucide-react";
+import { X, Upload, Loader2, Printer } from "lucide-react";
+import QRCode from "react-qr-code";
 
 interface Asset {
     id?: number;
@@ -54,6 +55,59 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
         setError("");
     }, [asset, isOpen]);
 
+    const handlePrintQR = () => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+        
+        const svgElement = document.getElementById('asset-qr-svg');
+        const svgString = svgElement ? new XMLSerializer().serializeToString(svgElement) : '';
+        
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print QR Code - ${formData.name}</title>
+                    <style>
+                        body {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            margin: 0;
+                            font-family: system-ui, -apple-system, sans-serif;
+                        }
+                        .container {
+                            text-align: center;
+                            padding: 2rem;
+                            border: 2px dashed #eee;
+                            border-radius: 1rem;
+                        }
+                        h2 { margin-bottom: 0.5rem; font-size: 1.5rem; }
+                        p { color: #666; margin-bottom: 2rem; font-family: monospace; }
+                        svg { width: 256px; height: 256px; }
+                        @media print {
+                            .container { border: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h2>${formData.name || 'New Asset'}</h2>
+                        <p>${formData.qr_code}</p>
+                        ${svgString}
+                    </div>
+                    <script>
+                        window.onload = () => {
+                            window.print();
+                            setTimeout(() => window.close(), 500);
+                        };
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -74,8 +128,17 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
             });
 
             if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.detail || "Failed to save asset");
+                let message = "Failed to save asset";
+                try {
+                    const text = await response.text();
+                    const data = JSON.parse(text);
+                    if (typeof data.detail === "string") message = data.detail;
+                    else if (Array.isArray(data.detail)) message = data.detail[0]?.msg ?? message;
+                    else if (text) message = text;
+                } catch {
+                    // non-JSON body — leave default message
+                }
+                throw new Error(message);
             }
 
             onSuccess();
@@ -192,26 +255,57 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                                 </div>
                                 <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                                     const file = e.target.files?.[0];
-                                    if (file) {
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => setFormData({ ...formData, image_url: reader.result as string });
-                                        reader.readAsDataURL(file);
+                                    if (!file) return;
+                                    if (!file.type.startsWith("image/")) {
+                                        setError("Only image files are allowed.");
+                                        return;
                                     }
+                                    if (file.size > 2 * 1024 * 1024) {
+                                        setError("Image must be under 2MB.");
+                                        return;
+                                    }
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => setFormData({ ...formData, image_url: reader.result as string });
+                                    reader.readAsDataURL(file);
                                 }} disabled={loading} />
                             </label>
                         </div>
                     </div>
 
                     {/* QR Code */}
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-gray-700 ml-1">Identifier (QR)</label>
-                        <input
-                            type="text"
-                            value={formData.qr_code}
-                            onChange={(e) => setFormData({ ...formData, qr_code: e.target.value })}
-                            className="w-full px-4 py-3 bg-gray-100 border-transparent rounded-xl text-gray-500 text-xs font-mono"
-                            disabled={loading}
-                        />
+                    <div className="space-y-3 pt-2 border-t border-gray-100">
+                        <div className="flex items-center justify-between ml-1">
+                            <label className="text-xs font-bold text-gray-700">Digital Identity (QR)</label>
+                            <button 
+                                type="button" 
+                                onClick={handlePrintQR}
+                                className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 hover:text-black transition-colors"
+                            >
+                                <Printer className="w-3.5 h-3.5" />
+                                PRINT LABEL
+                            </button>
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 shrink-0">
+                                <QRCode 
+                                    id="asset-qr-svg"
+                                    value={formData.qr_code || "PENDING"} 
+                                    size={80} 
+                                    level="H" 
+                                />
+                            </div>
+                            <div className="flex-1 w-full space-y-1.5">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Internal Identifier</p>
+                                <input
+                                    type="text"
+                                    value={formData.qr_code}
+                                    onChange={(e) => setFormData({ ...formData, qr_code: e.target.value })}
+                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-600 text-xs font-mono focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </form>
 
