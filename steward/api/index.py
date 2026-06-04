@@ -18,23 +18,33 @@ from app.models.activity import ActivityLog
 from app.models.incident import Incident 
 
 # Initialize Database
+# NOTE: create_all is used here because no Alembic migrations exist yet.
+# For a fully production-grade setup, replace this with Alembic migrations
+# and remove create_all from the serverless entrypoint.
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Steward API")
 
+# CORS: restrict to your app domain in production.
+# Set ALLOWED_ORIGINS in your environment, e.g.:
+#   ALLOWED_ORIGINS=https://your-app.vercel.app
+# Falls back to localhost for local development.
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 @app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
+async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}", "type": str(type(exc))},
+        content={"detail": "An internal server error occurred."},
     )
 
 # Register routers

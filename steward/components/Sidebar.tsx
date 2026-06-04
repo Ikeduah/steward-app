@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { StewardMark } from "./StewardMark";
 import { LayoutGrid, Box, Users, ClipboardList, AlertTriangle, History, Menu, LogOut, X } from "lucide-react";
 import { UserButton, useUser, SignedIn, useClerk, Protect } from "@clerk/nextjs";
 import { useState } from "react";
@@ -49,8 +49,10 @@ export function Sidebar() {
                     {/* Logo Area */}
                     <div className="h-20 flex items-center px-6 border-b border-[var(--sidebar-border)]">
                         <Link href="/dashboard" className="flex items-center gap-3">
-                            <Image src="/logo.png" alt="Steward Logo" width={40} height={40} className="rounded-xl" />
-                            <span className="text-xl font-bold tracking-tight text-black">Steward</span>
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(150deg, #34D399, #059669)" }}>
+                                <StewardMark className="w-[22px] h-[22px] text-white" />
+                            </div>
+                            <span className="text-xl font-semibold tracking-tight text-[#06140E]" style={{ fontFamily: "var(--font-space-grotesk)" }}>Steward</span>
                         </Link>
                     </div>
 
@@ -68,11 +70,12 @@ export function Sidebar() {
                                     className={`
                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                      ${isActive
-                                            ? "bg-green-50 text-green-700 shadow-sm"
+                                            ? "shadow-sm"
                                             : "text-black hover:bg-gray-50"}
                    `}
+                                style={isActive ? { background: "var(--g50)", color: "var(--g700)" } : undefined}
                                 >
-                                    <Icon className={`w-5 h-5 ${isActive ? "text-green-600 dark:text-green-400" : "text-gray-500"} transition-colors`} />
+                                    <Icon className="w-5 h-5 transition-colors" style={{ color: isActive ? "var(--g700)" : "var(--n500)" }} />
                                     {item.label}
                                 </Link>
                             );

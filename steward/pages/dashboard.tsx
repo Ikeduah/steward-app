@@ -1,9 +1,10 @@
 import { SignedIn, SignedOut, SignInButton, Protect, useAuth, useOrganization } from "@clerk/nextjs";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/router";
 import useSWR from "swr";
 import { Layout } from "@/components/Layout";
 import { StatCard } from "@/components/StatCard";
+// import { AiAssistant } from "@/components/AiAssistant"; // AI — coming soon
 import { ClipboardList, CheckCircle, AlertOctagon } from "lucide-react";
 
 export default function Dashboard() {
@@ -15,7 +16,7 @@ export default function Dashboard() {
             keepPreviousData: true,
         },
     });
-    const [adminMsg, setAdminMsg] = useState("");
+
 
     // Fetch activity logs
     const { data: activityLogs } = useSWR(
@@ -93,7 +94,7 @@ export default function Dashboard() {
         const d = log.details || {};
         switch (log.event_type) {
             case 'created':
-                return { label: 'New Asset', color: 'bg-green-50 text-green-700', msg: 'Added to inventory' };
+                return { label: 'New Asset', color: 'bg-emerald-50 text-emerald-700', msg: 'Added to inventory' };
             case 'updated':
                 if (d.new_status) {
                     return { label: d.new_status, color: 'bg-blue-50 text-blue-700', msg: `Status changed to ${d.new_status}` };
@@ -102,7 +103,7 @@ export default function Dashboard() {
             case 'checked_out':
                 return { label: 'Checked Out', color: 'bg-red-50 text-red-700', msg: 'Assigned to teammate' };
             case 'checked_in':
-                return { label: 'Returned', color: 'bg-green-50 text-green-700', msg: 'Returned to stock' };
+                return { label: 'Returned', color: 'bg-emerald-50 text-emerald-700', msg: 'Returned to stock' };
             case 'deleted':
                 return { label: 'Deleted', color: 'bg-gray-100 text-gray-700', msg: 'Removed from system' };
             case 'incident_reported':
@@ -129,7 +130,7 @@ export default function Dashboard() {
             <div className="space-y-8">
                 {/* Header */}
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-black">Dashboard</h1>
+                    <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)", color: "var(--ink)" }}>Dashboard</h1>
                     <p className="text-gray-500 mt-2">Overview of your inventory status.</p>
                 </div>
 
@@ -281,15 +282,8 @@ export default function Dashboard() {
                                     </div>
 
                                     {planInfo?.plan === 'pro' ? (
-                                        <div className="h-20 flex items-end gap-2 justify-between px-2">
-                                            {/* Fake chart bars for demo */}
-                                            {[40, 65, 30, 80, 50, 20, 45].map((h, i) => (
-                                                <div key={i} className="w-full bg-emerald-100 rounded-t-sm hover:bg-emerald-200 transition-colors relative group" style={{ height: `${h}%` }}>
-                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 text-[10px] font-bold text-emerald-700 bg-white px-1 shadow-sm rounded">
-                                                        {h}
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        <div className="h-20 flex items-center justify-center">
+                                            <p className="text-xs text-gray-400 italic">Trend analytics coming soon</p>
                                         </div>
                                     ) : (
                                         <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex flex-col items-center justify-center text-center p-4">
@@ -303,6 +297,8 @@ export default function Dashboard() {
                             </div>
                         </Protect>
                     </div>
+                    {/* AI Assistant — coming soon */}
+                    {/* <AiAssistant /> */}
                 </SignedIn>
             </div>
         </Layout>

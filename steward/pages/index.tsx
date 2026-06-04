@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { ChevronRight, Shield, Zap, Layout as LayoutIcon, Cpu, Globe, Users } from "lucide-react";
+import { StewardMark } from "../components/StewardMark";
 
 export default function Home() {
   return (
@@ -56,10 +57,12 @@ export default function Home() {
       <nav className="relative z-10 glass-nav flex justify-between items-center py-5 px-6 md:px-12 max-w-full mx-auto w-full sticky top-0">
         <div className="flex items-center gap-3 group cursor-pointer">
           <div className="relative">
-            <div className="absolute inset-0 bg-emerald-500 blur-lg opacity-40 group-hover:opacity-80 transition-opacity"></div>
-            <img src="/logo.png" alt="Steward Logo" className="relative w-9 h-9 rounded-xl object-contain p-0.5 border border-white/10" />
+            <div className="absolute inset-0 bg-emerald-500 blur-lg opacity-40 group-hover:opacity-80 transition-opacity rounded-xl"></div>
+            <div className="relative w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(150deg, #34D399, #059669)" }}>
+              <StewardMark className="w-5 h-5 text-white" />
+            </div>
           </div>
-          <span className="text-xl font-bold tracking-tight text-white group-hover:text-emerald-400 transition-colors">Steward</span>
+          <span className="text-xl font-semibold tracking-tight text-white group-hover:text-emerald-400 transition-colors" style={{ fontFamily: "var(--font-space-grotesk)" }}>Steward</span>
         </div>
 
         <div className="hidden md:flex items-center gap-10">
@@ -167,9 +170,11 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative z-10 py-16 px-6 border-t border-white/5 bg-black/20">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-3 opacity-80">
-            <img src="/logo.png" alt="Steward Logo" className="w-6 h-6 grayscale opacity-50" />
-            <span className="text-sm font-bold tracking-widest uppercase text-slate-500">Steward</span>
+          <div className="flex items-center gap-3 opacity-60">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(150deg, #34D399, #059669)" }}>
+              <StewardMark className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-sm font-semibold tracking-widest uppercase text-slate-500" style={{ fontFamily: "var(--font-space-grotesk)" }}>Steward</span>
           </div>
           <div className="flex gap-8 text-xs font-bold text-slate-500 uppercase tracking-widest">
             <Link href="/platform" className="hover:text-emerald-400 transition-colors">Platform</Link>

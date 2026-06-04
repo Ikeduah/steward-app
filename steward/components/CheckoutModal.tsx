@@ -93,7 +93,7 @@ export function CheckoutModal({ isOpen, onClose, asset, onSuccess }: CheckoutMod
                         <h2 className="text-lg font-bold text-gray-900">Checkout Asset</h2>
                         <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Assigning:</span>
-                            <span className="text-[10px] text-green-600 uppercase font-bold tracking-wider">{asset.name}</span>
+                            <span className="text-[10px] text-emerald-600 uppercase font-bold tracking-wider">{asset.name}</span>
                         </div>
                     </div>
                     <button
@@ -124,7 +124,7 @@ export function CheckoutModal({ isOpen, onClose, asset, onSuccess }: CheckoutMod
                                 required
                                 value={formData.assigned_to}
                                 onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                                className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all appearance-none text-sm font-medium text-gray-900"
+                                className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all appearance-none text-sm font-medium text-gray-900"
                                 disabled={loading}
                             >
                                 <option value="">Select a member...</option>
@@ -148,7 +148,7 @@ export function CheckoutModal({ isOpen, onClose, asset, onSuccess }: CheckoutMod
                                 type="date"
                                 value={formData.expected_return_at}
                                 onChange={(e) => setFormData({ ...formData, expected_return_at: e.target.value })}
-                                className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all text-sm font-medium text-gray-900"
+                                className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm font-medium text-gray-900"
                                 disabled={loading}
                                 min={new Date().toISOString().split('T')[0]}
                             />
@@ -162,7 +162,7 @@ export function CheckoutModal({ isOpen, onClose, asset, onSuccess }: CheckoutMod
                             rows={3}
                             value={formData.notes}
                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                            className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all placeholder:text-gray-400 text-sm resize-none"
+                            className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400 text-sm resize-none"
                             placeholder="Add any specific details for this assignment..."
                             disabled={loading}
                         />

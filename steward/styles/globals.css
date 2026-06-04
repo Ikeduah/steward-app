@@ -6,8 +6,7 @@
   --foreground: #171717;
 
   /* Brand Colors */
-  --primary: #22c55e;
-  /* Green-500 equivalent */
+  --primary: #10B981;
   --primary-foreground: #ffffff;
 
   /* Sidebar / Navigation */
@@ -19,6 +18,34 @@
   --card: #ffffff;
   --card-foreground: #171717;
   --card-border: #e5e7eb;
+
+  /* Brand Kit — Emerald scale */
+  --g700: #047857;
+  --g600: #059669;
+  --g500: #10B981;
+  --g400: #34D399;
+  --g300: #6EE7B7;
+  --g100: #D1FAE5;
+  --g50:  #ECFDF5;
+
+  /* Brand Kit — Graphite neutral ramp */
+  --ink:   #06140E;
+  --ink-2: #0C1E16;
+  --paper: #FBFBF9;
+  --n900:  #0F1512;
+  --n700:  #2F3A35;
+  --n500:  #5B6862;
+  --n400:  #8A958F;
+  --n300:  #B9C2BD;
+  --n200:  #D9DEDB;
+  --n100:  #EDF0EE;
+  --n50:   #F6F8F7;
+
+  /* Brand Kit — Semantic asset states */
+  --color-available: #22C55E;
+  --color-overdue:   #F59E0B;
+  --color-missing:   #EF4444;
+  --color-info:      #3B82F6;
 }
 
 

@@ -48,7 +48,7 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                 name: "",
                 description: "",
                 status: "Available",
-                qr_code: `QR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                qr_code: `QR-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 image_url: "",
             });
         }
@@ -58,43 +58,85 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
     const handlePrintQR = () => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
-        
+
         const svgElement = document.getElementById('asset-qr-svg');
         const svgString = svgElement ? new XMLSerializer().serializeToString(svgElement) : '';
-        
+
+        const assetName = formData.name || 'New Asset';
+        const assetId = formData.qr_code;
+
         printWindow.document.write(`
+            <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Print QR Code - ${formData.name}</title>
+                    <title>Asset Tag — ${assetName}</title>
+                    <link rel="preconnect" href="https://fonts.googleapis.com" />
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+                    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
                     <style>
-                        body {
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            height: 100vh;
-                            margin: 0;
-                            font-family: system-ui, -apple-system, sans-serif;
+                        *{box-sizing:border-box;margin:0;padding:0}
+                        body{
+                            display:flex;align-items:center;justify-content:center;
+                            min-height:100vh;background:#F6F8F7;
+                            font-family:system-ui,sans-serif;-webkit-font-smoothing:antialiased;
                         }
-                        .container {
-                            text-align: center;
-                            padding: 2rem;
-                            border: 2px dashed #eee;
-                            border-radius: 1rem;
+                        .card{
+                            width:230px;background:#fff;border-radius:16px;
+                            border:1px solid #D9DEDB;
+                            box-shadow:0 18px 40px -22px rgba(6,20,14,.35);
+                            overflow:hidden;
                         }
-                        h2 { margin-bottom: 0.5rem; font-size: 1.5rem; }
-                        p { color: #666; margin-bottom: 2rem; font-family: monospace; }
-                        svg { width: 256px; height: 256px; }
-                        @media print {
-                            .container { border: none; }
+                        .card-header{
+                            background:#06140E;padding:13px 16px;
+                            display:flex;align-items:center;gap:9px;
+                        }
+                        .tile{
+                            width:24px;height:24px;border-radius:7px;flex-shrink:0;
+                            background:linear-gradient(150deg,#34D399,#059669);
+                            display:flex;align-items:center;justify-content:center;
+                        }
+                        .brand-name{
+                            font-family:'Space Grotesk',sans-serif;font-weight:600;
+                            font-size:13px;color:#fff;letter-spacing:-.01em;
+                        }
+                        .qr-area{
+                            padding:22px;display:flex;justify-content:center;
+                        }
+                        .qr-area svg{width:120px;height:120px;display:block;}
+                        .info{padding:0 18px 18px;text-align:center;}
+                        .asset-id{
+                            font-family:'JetBrains Mono',monospace;font-size:11px;
+                            color:#059669;margin-bottom:3px;text-transform:uppercase;
+                            letter-spacing:.08em;
+                        }
+                        .asset-name{
+                            font-family:'Space Grotesk',sans-serif;font-weight:600;
+                            font-size:15px;color:#06140E;letter-spacing:-.01em;
+                        }
+                        @media print{
+                            body{background:#fff;min-height:unset;display:block;}
+                            .card{box-shadow:none;border-color:#D9DEDB;}
                         }
                     </style>
                 </head>
                 <body>
-                    <div class="container">
-                        <h2>${formData.name || 'New Asset'}</h2>
-                        <p>${formData.qr_code}</p>
-                        ${svgString}
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="tile">
+                                <svg width="14" height="14" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                                    <path d="M45 19 C45 13 39 10 31 10 C20 10 14 16 14 23 C14 30 20 33 30 35 C40 37 45 40 45 45 C45 52 39 55 30 55"
+                                        stroke="#fff" stroke-width="8.5" stroke-linecap="round"/>
+                                    <circle cx="45" cy="19" r="5" fill="#fff"/>
+                                    <circle cx="30" cy="55" r="5" fill="#fff"/>
+                                </svg>
+                            </div>
+                            <span class="brand-name">Steward</span>
+                        </div>
+                        <div class="qr-area">${svgString}</div>
+                        <div class="info">
+                            <div class="asset-id">${assetId}</div>
+                            <div class="asset-name">${assetName}</div>
+                        </div>
                     </div>
                     <script>
                         window.onload = () => {
@@ -320,7 +362,6 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                         Cancel
                     </button>
                     <button
-                        onClick={handleSubmit}
                         type="submit"
                         disabled={loading}
                         className="flex-[2] py-3 px-4 bg-black text-white rounded-xl text-xs font-extrabold shadow-lg shadow-black/10 hover:bg-gray-900 active:scale-95 transition-all flex items-center justify-center gap-2"

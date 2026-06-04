@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi_clerk_auth import HTTPAuthorizationCredentials
+
 
 from app.core.debs import get_db
-from app.core.security import clerk_guard
+from app.core.security import clerk_guard, ClerkCredentials
 from app.models.assignment import Assignment
 from app.models.asset import Asset
 from app.models.activity import ActivityLog
@@ -19,7 +19,8 @@ def checkout_asset(
     assignment: AssignmentCreate,
     db: Session = Depends(get_db),
     org_id: str = Depends(get_org_id),
-    admin_id: str = Depends(get_user_id)
+    admin_id: str = Depends(get_user_id),
+    _: bool = Depends(require_admin)
 ):
     # 1. Check if asset exists and belongs to org
     asset = db.query(Asset).filter(Asset.id == assignment.asset_id, Asset.org_id == org_id).first()
@@ -110,15 +111,15 @@ def checkin_asset(
 def get_active_assignments(
     db: Session = Depends(get_db),
     org_id: str = Depends(get_org_id),
-    creds: HTTPAuthorizationCredentials = Depends(clerk_guard)
+    creds: ClerkCredentials = Depends(clerk_guard)
 ):
     user_id = creds.decoded.get("sub")
     claims = creds.decoded
-    role = claims.get("org_role") or (claims.get("o") or {}).get("r")
+    role = claims.get("org_role") or (claims.get("o") or {}).get("rol")
     
     query = db.query(Assignment).filter(Assignment.org_id == org_id, Assignment.status == "Active")
     
-    if role != "org:admin":
+    if role not in ("admin", "org:admin"):
         query = query.filter(Assignment.assigned_to == user_id)
         
     return query.all()
@@ -127,18 +128,18 @@ def get_active_assignments(
 def get_all_assignment_history(
     db: Session = Depends(get_db),
     org_id: str = Depends(get_org_id),
-    creds: HTTPAuthorizationCredentials = Depends(clerk_guard)
+    creds: ClerkCredentials = Depends(clerk_guard)
 ):
     user_id = creds.decoded.get("sub")
     claims = creds.decoded
-    role = claims.get("org_role") or (claims.get("o") or {}).get("r")
+    role = claims.get("org_role") or (claims.get("o") or {}).get("rol")
 
     query = db.query(Assignment).filter(
         Assignment.org_id == org_id,
         Assignment.status == "Returned"
     )
 
-    if role != "org:admin":
+    if role not in ("admin", "org:admin"):
         query = query.filter(Assignment.assigned_to == user_id)
 
     return query.order_by(Assignment.actual_return_at.desc()).all()
