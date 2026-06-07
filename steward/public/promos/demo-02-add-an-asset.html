@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Steward — Demo · Add an Asset</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;padding:0;height:100%;background:#0a0a0a;overflow:hidden}body{font-family:Inter,system-ui,sans-serif}#root{position:absolute;inset:0}</style>
+</head>
+<body>
+<div id="root" data-video-root data-screen-label="t=0s"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="animations.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+<script type="text/babel" src="steward-ui.jsx"></script>
+
+<script type="text/babel">
+const B = StewardBrand;
+const SHELL_X = 120, SHELL_Y = 80;
+
+function Cold() {
+  return (
+    <Sprite start={0} end={3}>
+      {({ localTime, duration }) => {
+        const t = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        const out = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - out) * t;
+        return (
+          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center', opacity:op, gap:30}}>
+            <div style={{fontFamily:B.mono, fontSize:14, color:B.g400, letterSpacing:'0.26em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:14}}>
+              <span style={{width:36, height:1.5, background:B.g400}}/>Demo · 02<span style={{width:36, height:1.5, background:B.g400}}/>
+            </div>
+            <div style={{fontFamily:B.display, fontWeight:600, fontSize:140, color:'#fff', letterSpacing:'-0.045em', lineHeight:0.95, textAlign:'center'}}>Add an Asset</div>
+            <div style={{fontFamily:B.display, fontWeight:400, fontSize:28, color:B.n300}}>One form. One QR. One source of truth.</div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* Form fields revealed in modal */
+function FormField({ label, value, t, hasCursor }) {
+  return (
+    <div style={{opacity:t, transform:`translateY(${(1-t)*10}px)`, marginBottom:16}}>
+      <div style={{fontFamily:B.mono, fontSize:11, color:B.n400, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:7, fontWeight:600}}>{label}</div>
+      <div style={{background:B.n50, border:'1.5px solid '+(hasCursor ? B.g400 : B.n100), borderRadius:10, padding:'13px 16px', fontFamily:B.body, fontSize:15, color:B.ink, fontWeight:500, transition:'border 0.2s'}}>
+        {value}{hasCursor && <span style={{color:B.g500, marginLeft:2}}>|</span>}
+      </div>
+    </div>
+  );
+}
+
+/* QR generator preview */
+function QrPreview({ t, code = 'QR-CAM-FX5' }) {
+  return (
+    <div style={{
+      opacity:t, transform:`scale(${0.85 + 0.15 * t})`,
+      background:B.g50, border:'2px dashed '+B.g400, borderRadius:14, padding:20,
+      display:'flex', alignItems:'center', gap:18,
+    }}>
+      <div style={{background:'#fff', borderRadius:10, padding:8, boxShadow:'0 4px 10px -4px rgba(0,0,0,0.15)'}}>
+        <FauxQR size={96}/>
+      </div>
+      <div>
+        <div style={{fontFamily:B.mono, fontSize:11, color:B.g600, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:4, fontWeight:600}}>QR Generated</div>
+        <div style={{fontFamily:B.mono, fontSize:16, color:B.ink, fontWeight:600, letterSpacing:'0.06em'}}>{code}</div>
+        <div style={{fontFamily:B.body, fontSize:12, color:B.n500, marginTop:6}}>Print, stick, scan.</div>
+      </div>
+    </div>
+  );
+}
+
+/* Cursor coordinates: shell at (120,80). The +Add Asset button is top-right of main panel ≈ x=1700, y=180 */
+const cursor = [
+  { t: 4.5,  x: 920, y: 540 },
+  { t: 5.8,  x: 1720, y: 200, click: true },     // click Add Asset
+  { t: 8.5,  x: 1100, y: 380 },                  // hover name field
+  { t: 12.0, x: 1100, y: 500 },                  // hover category
+  { t: 15.0, x: 1330, y: 740, click: true },     // click Generate QR / Save
+  { t: 18.5, x: 900, y: 600 },                   // drift to new row
+];
+
+function Walk() {
+  return (
+    <Sprite start={3} end={23}>
+      {({ localTime, duration }) => {
+        // Shell entrance
+        const ent = Easing.easeOutCubic(clamp(localTime/0.8, 0, 1));
+        const shellOp = ent, shellY = (1-ent)*40;
+
+        // Modal opens at ~3s after start
+        const modalT = clamp((localTime - 3.0)/0.5, 0, 1);
+        const modalOp = Easing.easeOutCubic(modalT);
+
+        // Form fields
+        const f1 = Easing.easeOutCubic(clamp((localTime - 4.0)/0.5, 0, 1));
+        const f2 = Easing.easeOutCubic(clamp((localTime - 5.5)/0.5, 0, 1));
+        const f3 = Easing.easeOutCubic(clamp((localTime - 7.0)/0.5, 0, 1));
+
+        // Typing name
+        const nameText = 'Sony FX6 Cinema Camera';
+        const nameTyped = nameText.slice(0, Math.floor(clamp((localTime - 5.0)/2.0, 0, 1) * nameText.length));
+        const isTypingName = localTime > 5.0 && localTime < 7.5;
+
+        // Cursor on name then category
+        const isOnCategory = localTime >= 8.5 && localTime < 11.5;
+        const catText = 'Camera · Cinema';
+        const catTyped = isOnCategory ? catText.slice(0, Math.floor(clamp((localTime - 9.0)/1.5, 0, 1) * catText.length)) : (localTime >= 11.5 ? catText : '');
+
+        // QR generation reveal after click at t=12 (12 from sprite start = 15 absolute)
+        const qrT = Easing.easeOutCubic(clamp((localTime - 12.5)/0.7, 0, 1));
+
+        // Modal closes at 15s, new row slides into list at 15.5
+        const closeT = clamp((localTime - 15.5)/0.4, 0, 1);
+        const modalOut = 1 - closeT;
+        const newRowT = Easing.easeOutCubic(clamp((localTime - 16.0)/0.5, 0, 1));
+
+        // Caption strip
+        const captions = [
+          { from: 0.5, to: 3.0,  text: 'Click + Add Asset to start' },
+          { from: 3.5, to: 9.0,  text: 'Just a few fields · keep it fast' },
+          { from: 9.0, to: 13.0, text: 'Pick a category · status defaults to Available' },
+          { from: 13.0, to: 16.5, text: 'A unique QR code is generated automatically' },
+          { from: 16.5, to: 19.5, text: 'New row added · ready to assign or scan' },
+        ];
+        const cap = captions.find(c => localTime >= c.from && localTime < c.to);
+        const capT = cap ? Easing.easeOutCubic(clamp((localTime - cap.from)/0.3, 0, 1)) * Easing.easeOutCubic(clamp((cap.to - localTime)/0.3, 0, 1)) : 0;
+
+        return (
+          <div style={{position:'absolute', inset:0}}>
+            <div style={{position:'absolute', left:SHELL_X, top:SHELL_Y, width:1680, height:920, opacity:shellOp, transform:`translateY(${shellY}px)`}}>
+              <AppShell active="assets">
+                <PageHeader title="Assets" sub="Manage your inventory and equipment."
+                  action={<PrimaryButton highlight={localTime > 2.4 && localTime < 3.2}>Add Asset</PrimaryButton>}
+                />
+                <div style={{display:'flex', gap:14, marginBottom:24}}>
+                  <SearchBar placeholder="Search assets..."/>
+                  <FilterDropdown value="All Status"/>
+                </div>
+                <div style={{background:'#fff', borderRadius:14, border:'1px solid '+B.n100, overflow:'hidden'}}>
+                  <div style={{padding:'14px 20px', background:B.n50, borderBottom:'1px solid '+B.n100, display:'flex', alignItems:'center', gap:14}}>
+                    <div style={{width:18, height:18, borderRadius:5, border:'2px solid '+B.n200}}/>
+                    <div style={{fontFamily:B.mono, fontSize:11, color:B.n500, letterSpacing:'0.18em', textTransform:'uppercase', fontWeight:600}}>Select All</div>
+                  </div>
+                  {/* New row slides in at top */}
+                  {newRowT > 0 && (
+                    <div style={{background: B.g50 + '88'}}>
+                      <AssetRow t={newRowT} name="Sony FX6 Cinema Camera" qr="QR-CAM-FX6" status="AVAILABLE"/>
+                    </div>
+                  )}
+                  <AssetRow name="Sony FX3 Cinema Camera"   qr="QR-CAM-FX3"  status="AVAILABLE"/>
+                  <AssetRow name="Sennheiser G4 Wireless Mic A" qr="QR-MIC-G4-1" status="AVAILABLE"/>
+                  <AssetRow name="Sennheiser G4 Wireless Mic B" qr="QR-MIC-G4-2" status="CHECKED OUT"/>
+                  <AssetRow name="Apple MacBook Pro 16&quot; M3" qr="QR-MAC-16M3" status="AVAILABLE"/>
+                  <AssetRow name="Aputure 600d Pro Light"    qr="QR-LGT-600D" status="MAINTENANCE"/>
+                </div>
+              </AppShell>
+            </div>
+
+            {/* Modal */}
+            {modalOp > 0 && modalOut > 0 && (
+              <div style={{position:'absolute', left:SHELL_X, top:SHELL_Y, width:1680, height:920, opacity: modalOp * modalOut}}>
+                <Modal title="Add New Asset" t={modalOp * modalOut} width={760}>
+                  <FormField t={f1} label="Asset Name" value={nameTyped} hasCursor={isTypingName}/>
+                  <FormField t={f2} label="Category" value={catTyped} hasCursor={isOnCategory && catTyped.length < catText.length}/>
+                  <FormField t={f3} label="Initial Status" value="Available"/>
+                  {qrT > 0 && (
+                    <div style={{marginTop:8}}>
+                      <QrPreview t={qrT} code="QR-CAM-FX6"/>
+                    </div>
+                  )}
+                  <div style={{marginTop:24, display:'flex', justifyContent:'flex-end', gap:12}}>
+                    <div style={{fontFamily:B.body, fontSize:15, fontWeight:600, color:B.n500, padding:'12px 22px'}}>Cancel</div>
+                    <div style={{
+                      background: B.ink, color:'#fff', fontFamily:B.body, fontSize:15, fontWeight:600,
+                      padding:'12px 22px', borderRadius:12, display:'inline-flex', alignItems:'center', gap:10,
+                      boxShadow: localTime > 11.5 && localTime < 12.4 ? `0 0 0 4px ${B.g400}55` : 'none',
+                      transition:'box-shadow 0.2s',
+                    }}>{qrT > 0.5 ? '✓ Saved' : 'Generate QR & Save'}</div>
+                  </div>
+                </Modal>
+              </div>
+            )}
+
+            {/* Caption */}
+            {cap && (
+              <div style={{position:'absolute', bottom:40, left:0, right:0, display:'flex', justifyContent:'center', opacity:capT, transform:`translateY(${(1-capT)*12}px)`}}>
+                <div style={{background:'rgba(6,20,14,0.85)', backdropFilter:'blur(20px)', border:'1px solid rgba(52,211,153,0.25)', borderRadius:999, padding:'12px 24px', display:'flex', alignItems:'center', gap:14}}>
+                  <div style={{width:8, height:8, borderRadius:'50%', background:B.g400, boxShadow:`0 0 12px ${B.g500}`}}/>
+                  <span style={{fontFamily:B.display, fontWeight:500, fontSize:20, color:'#fff', letterSpacing:'-0.01em'}}>{cap.text}</span>
+                </div>
+              </div>
+            )}
+            <Cursor script={cursor}/>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+function End() { return <Sprite start={23} end={27}><EndCard tagline="Inventory, on tap." url="steward.app"/></Sprite>; }
+
+function Demo() {
+  return (
+    <Stage width={1920} height={1080} duration={27} background={B.ink} persistKey="demo-02">
+      <TimestampLabel/>
+      <PromoBackdrop/>
+      <CornerWatermark start={3.5} end={23}/>
+      <Cold/><Walk/><End/>
+    </Stage>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

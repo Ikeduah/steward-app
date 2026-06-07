@@ -1,0 +1,296 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Steward — This Is Steward</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0a; overflow: hidden; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  #root { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="root" data-video-root data-screen-label="t=0s"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="animations.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+
+<script type="text/babel">
+const B = StewardBrand;
+
+/* ============ SCENE A · COLD OPEN (0 → 3.5) ============ */
+function SceneA() {
+  return (
+    <Sprite start={0} end={3.7}>
+      {({ localTime, duration }) => {
+        const fadeIn = Easing.easeOutCubic(clamp(localTime/0.8, 0, 1));
+        const exitT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - exitT) * fadeIn;
+        const markScale = 0.6 + 0.4 * Easing.easeOutCubic(clamp(localTime/1.6, 0, 1));
+        return (
+          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center', opacity:op}}>
+            <div style={{transform:`scale(${markScale})`,marginBottom:60}}>
+              <KeystoneMark color={B.g400} size={120} style={{opacity:0.85, filter:'drop-shadow(0 0 40px rgba(52,211,153,0.4))'}}/>
+            </div>
+            <Eyebrow color={B.g400} size={18}>Steward · Precision Inventory</Eyebrow>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE B · LOGO REVEAL (3.7 → 7) ============ */
+function SceneB() {
+  return (
+    <Sprite start={3.7} end={7.2}>
+      {({ localTime, duration }) => {
+        const t = Easing.easeOutBack(clamp(localTime/0.8, 0, 1));
+        const exitT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - exitT);
+        const tileScale = 0.2 + 0.8 * t;
+        // Wordmark slides in after tile
+        const wordT = Easing.easeOutCubic(clamp((localTime - 0.5)/0.7, 0, 1));
+        return (
+          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center', opacity:op, gap:40}}>
+            <div style={{transform:`scale(${tileScale})`, transformOrigin:'center'}}>
+              <KeystoneTile size={180}/>
+            </div>
+            <div style={{
+              overflow:'hidden',
+              width: wordT * 460,
+              transition:'width 0.05s linear',
+            }}>
+              <span style={{fontFamily:B.display,fontWeight:600,fontSize:140,letterSpacing:'-0.045em',color:'#fff',lineHeight:0.9,whiteSpace:'nowrap',display:'inline-block'}}>Steward</span>
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE C · EVERY PIECE OF GEAR (7.2 → 12) ============ */
+const ASSETS = [
+  { id: 'ASSET-04821', name: 'Shure SM7B', icon: '🎙' },
+  { id: 'ASSET-02103', name: 'Sony FX3', icon: '📷' },
+  { id: 'ASSET-07882', name: 'Aputure 300x', icon: '💡' },
+  { id: 'ASSET-03340', name: 'DJI Ronin 4D', icon: '🎬' },
+  { id: 'ASSET-06214', name: 'Rode Wireless', icon: '📡' },
+  { id: 'ASSET-01177', name: 'Atomos Shogun', icon: '📺' },
+];
+
+function AssetChip({ name, id, x, y, delay = 0, totalDur = 4 }) {
+  const { localTime } = useSprite();
+  const t = clamp((localTime - delay)/0.8, 0, 1);
+  const e = Easing.easeOutCubic(t);
+  const op = e;
+  const ty = (1 - e) * 30;
+  // Subtle drift
+  const drift = Math.sin((localTime + delay) * 0.7) * 4;
+  return (
+    <div style={{
+      position:'absolute', left:x, top:y + drift, transform:`translateY(${ty}px)`, opacity:op,
+      background:'rgba(255,255,255,0.04)', backdropFilter:'blur(8px)',
+      border:'1px solid rgba(255,255,255,0.08)', borderRadius:14,
+      padding:'14px 18px', display:'flex', alignItems:'center', gap:14, minWidth:220,
+    }}>
+      <KeystoneTile size={42} radius={10} glow={false}/>
+      <div>
+        <div style={{fontFamily:B.mono, fontSize:11, color:B.g400, letterSpacing:'0.08em'}}>{id}</div>
+        <div style={{fontFamily:B.display, fontWeight:600, fontSize:17, color:'#fff', letterSpacing:'-0.01em', marginTop:2}}>{name}</div>
+      </div>
+    </div>
+  );
+}
+
+function SceneC() {
+  return (
+    <Sprite start={7.2} end={12.2}>
+      {({ localTime, duration }) => {
+        const titleT = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        const exitT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - exitT);
+        const positions = [
+          { x: 140,  y: 130 }, { x: 1340, y: 160 },
+          { x: 100,  y: 760 }, { x: 1380, y: 740 },
+          { x: 180,  y: 460 }, { x: 1380, y: 460 },
+        ];
+        return (
+          <div style={{position:'absolute',inset:0, opacity:op}}>
+            {/* floating chips */}
+            {ASSETS.map((a, i) => (
+              <AssetChip key={a.id} name={a.name} id={a.id} x={positions[i].x} y={positions[i].y} delay={i * 0.12}/>
+            ))}
+            {/* center title */}
+            <div style={{
+              position:'absolute', inset:0, display:'flex', flexDirection:'column',
+              alignItems:'center', justifyContent:'center',
+              opacity:titleT, transform:`translateY(${(1-titleT)*16}px)`,
+            }}>
+              <Eyebrow color={B.g400}>01 · Inventory</Eyebrow>
+              <div style={{marginTop:26, fontFamily:B.display, fontWeight:600, fontSize:120, color:'#fff', letterSpacing:'-0.04em', lineHeight:1, textAlign:'center'}}>
+                Every piece<br/>of gear.
+              </div>
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE D · EVERY CHECKOUT (12.2 → 17) ============ */
+function CheckoutRow({ avatar, who, asset, status, color, delay, x, y }) {
+  const { localTime } = useSprite();
+  const t = Easing.easeOutCubic(clamp((localTime - delay)/0.6, 0, 1));
+  const op = t;
+  const tx = (1 - t) * 40;
+  return (
+    <div style={{
+      position:'absolute', left:x, top:y, transform:`translateX(${tx}px)`, opacity:op,
+      background:'#fff', borderRadius:16, padding:'18px 22px',
+      display:'flex', alignItems:'center', gap:20, width:540,
+      boxShadow:'0 20px 50px -30px rgba(0,0,0,0.6)',
+      border:'1px solid '+B.n100,
+    }}>
+      <div style={{width:42, height:42, borderRadius:'50%', background:avatar, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:B.display, fontWeight:600, color:'#fff', fontSize:16}}>{who.charAt(0)}</div>
+      <div style={{flex:1}}>
+        <div style={{fontFamily:B.display, fontWeight:600, fontSize:18, color:B.ink, letterSpacing:'-0.01em'}}>{who}</div>
+        <div style={{fontFamily:B.body, fontSize:14, color:B.n500, marginTop:2}}>{asset}</div>
+      </div>
+      <div style={{
+        fontFamily:B.mono, fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase',
+        background: color + '20', color, padding:'6px 12px', borderRadius:8, fontWeight:500,
+      }}>{status}</div>
+    </div>
+  );
+}
+
+function SceneD() {
+  return (
+    <Sprite start={12.2} end={17.2}>
+      {({ localTime, duration }) => {
+        const titleT = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        const exitT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - exitT);
+        return (
+          <div style={{position:'absolute',inset:0, opacity:op, display:'flex', alignItems:'center'}}>
+            {/* left: title */}
+            <div style={{flex:1, paddingLeft:140, opacity:titleT, transform:`translateY(${(1-titleT)*16}px)`}}>
+              <Eyebrow color={B.g400}>02 · Custody</Eyebrow>
+              <div style={{marginTop:26, fontFamily:B.display, fontWeight:600, fontSize:108, color:'#fff', letterSpacing:'-0.04em', lineHeight:1}}>
+                Every<br/>checkout.<br/>
+                <span style={{color:B.g400}}>Every return.</span>
+              </div>
+            </div>
+            {/* right: stack of cards */}
+            <div style={{flex:1, position:'relative', height:520, paddingRight:80}}>
+              <CheckoutRow x={120} y={20}  delay={0.3} avatar={B.g600} who="Maya Chen"    asset="Sony FX3 · ASSET-02103"     status="Checked out" color={B.blue}/>
+              <CheckoutRow x={120} y={120} delay={0.5} avatar={B.amber} who="Jake Rivera"  asset="Aputure 300x · ASSET-07882" status="Due tomorrow" color={B.amber}/>
+              <CheckoutRow x={120} y={220} delay={0.7} avatar={B.n700} who="Priya Patel"  asset="Shure SM7B · ASSET-04821"   status="Returned"     color={B.g600}/>
+              <CheckoutRow x={120} y={320} delay={0.9} avatar={B.g700} who="Sam Lin"      asset="DJI Ronin 4D · ASSET-03340" status="Checked out" color={B.blue}/>
+              <CheckoutRow x={120} y={420} delay={1.1} avatar={B.red}  who="Devon Cole"   asset="Rode Wireless · ASSET-06214" status="Overdue"     color={B.red}/>
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE E · ACCOUNTED FOR (17.2 → 22) ============ */
+function SceneE() {
+  return (
+    <Sprite start={17.2} end={22.2}>
+      {({ localTime, duration }) => {
+        const titleT = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        const cardT = clamp((localTime - 0.4)/0.6, 0, 1);
+        const exitT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - exitT);
+
+        // Use a nested Sprite so CountUp progress = 0→1 over this scene's count window
+        const countProgress = clamp((localTime - 0.6)/2.2, 0, 1);
+        const ease = Easing.easeOutCubic(countProgress);
+
+        const v = (target) => Math.round(target * ease);
+
+        return (
+          <div style={{position:'absolute',inset:0, opacity:op, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
+            <div style={{opacity:titleT, transform:`translateY(${(1-titleT)*16}px)`, textAlign:'center'}}>
+              <Eyebrow color={B.g400}>03 · Accountability</Eyebrow>
+              <div style={{marginTop:24, fontFamily:B.display, fontWeight:600, fontSize:124, color:'#fff', letterSpacing:'-0.04em', lineHeight:1}}>
+                All accounted for.
+              </div>
+            </div>
+            <div style={{
+              marginTop:80, display:'flex', gap:24,
+              opacity:cardT, transform:`translateY(${(1-cardT)*24}px)`,
+            }}>
+              <StatCard label="Available" value={v(248)} accent={B.g600} width={260}/>
+              <StatCard label="Checked out" value={v(61)}  accent={B.blue}  width={260}/>
+              <StatCard label="Overdue"    value={v(7)}    accent={B.amber} width={260}/>
+              <StatCard label="In repair"  value={v(3)}    accent={B.n500}  width={260}/>
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE F · END CARD (22.2 → 25) ============ */
+function SceneF() {
+  return (
+    <Sprite start={22.2} end={25.1}>
+      <EndCard tagline="Precision Inventory Management." url="steward.app"/>
+    </Sprite>
+  );
+}
+
+/* ============ MAIN ============ */
+function Promo01() {
+  return (
+    <Stage width={1920} height={1080} duration={25} background={B.ink} persistKey="promo-01">
+      <TimestampLabel/>
+      {/* Persistent background glow + grid */}
+      <div style={{position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none'}}>
+        <EmeraldGlow x="-10%" y="-10%" size="60%" intensity={0.18} blur={140}/>
+        <EmeraldGlow x="50%"  y="50%"  size="55%" intensity={0.14} blur={150}/>
+        <GridBg opacity={0.6} size={90}/>
+      </div>
+
+      <SceneA/>
+      <SceneB/>
+      <SceneC/>
+      <SceneD/>
+      <SceneE/>
+      <SceneF/>
+
+      {/* persistent corner watermark from scene C onward */}
+      <Sprite start={7.2} end={22.2}>
+        {({ localTime }) => {
+          const op = Easing.easeOutCubic(clamp(localTime/0.5, 0, 1)) * 0.8;
+          return (
+            <div style={{position:'absolute', top:48, left:60, opacity:op, display:'flex', alignItems:'center', gap:14}}>
+              <KeystoneTile size={40} radius={10} glow={false}/>
+              <span style={{fontFamily:B.display, fontWeight:600, fontSize:22, color:'#fff', letterSpacing:'-0.02em'}}>Steward</span>
+            </div>
+          );
+        }}
+      </Sprite>
+    </Stage>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Promo01/>);
+</script>
+</body>
+</html>

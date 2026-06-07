@@ -42,3 +42,27 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local Claude Code instructions (not for version control)
+CLAUDE.md
+
+# Playwright and Demo Recordings
+/demo-media/
+/tests/
+playwright.config.ts
+record-demo.bat
+stitch-videos.js
+generate-token.js
+state.json
+
+# Agent and AI artifacts
+/.agents/
+/.agent/
+/.claude/
+skills-lock.json
+
+# Local Backend / DB
+/api/steward.db
+/api/get_ids*.py
+/api/output_ids.json
+/api/seed.py
+/api/seed_output.txt

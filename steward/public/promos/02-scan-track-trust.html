@@ -1,0 +1,367 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Steward — Scan. Track. Trust.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0a; overflow: hidden; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  #root { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="root" data-video-root data-screen-label="t=0s"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="animations.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+
+<script type="text/babel">
+const B = StewardBrand;
+
+/* Big single-word title that slams in */
+function PowerWord({ word, color = '#fff', size = 220 }) {
+  const { localTime, duration } = useSprite();
+  const inT = Easing.easeOutBack(clamp(localTime/0.5, 0, 1));
+  const outT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+  const op = (1 - outT) * inT;
+  const scale = 0.8 + 0.2 * inT;
+  return (
+    <div style={{
+      fontFamily:B.display, fontWeight:700, fontSize:size, color, letterSpacing:'-0.05em',
+      lineHeight:1, opacity:op, transform:`scale(${scale})`, transformOrigin:'center',
+    }}>{word}</div>
+  );
+}
+
+/* ============ SCENE A · COLD OPEN (0 → 2.5) ============ */
+function SceneA() {
+  return (
+    <Sprite start={0} end={2.5}>
+      {({ localTime, duration }) => {
+        const t = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        const outT = clamp((localTime - (duration-0.4))/0.4, 0, 1);
+        const op = (1 - outT) * t;
+        return (
+          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center', opacity:op, gap:36}}>
+            <Eyebrow color={B.g400} size={20}>Steward · In the Field</Eyebrow>
+            <div style={{fontFamily:B.display,fontWeight:500,fontSize:48,color:B.n300,letterSpacing:'-0.015em',textAlign:'center'}}>
+              Three gestures.<br/>
+              One source of truth.
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE B · SCAN (2.5 → 8) ============ */
+function SceneB() {
+  return (
+    <Sprite start={2.5} end={8}>
+      {({ localTime, duration }) => {
+        const outT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - outT);
+
+        // Phase 1 (0-1.4): scan reticle pulses, no tag yet
+        // Phase 2 (1.4-2.0): tag fades in inside reticle
+        // Phase 3 (2.0-): "Scan." word appears to right; tag holds
+        const tagT = Easing.easeOutCubic(clamp((localTime - 1.2)/0.7, 0, 1));
+        const wordT = Easing.easeOutBack(clamp((localTime - 2.0)/0.6, 0, 1));
+
+        // Reticle pulse + slight shrink as it "locks in"
+        const lockProgress = clamp((localTime - 1.2)/0.6, 0, 1);
+        const reticleScale = 1.15 - 0.15 * Easing.easeOutCubic(lockProgress);
+        const reticlePulse = 0.6 + 0.4 * Math.sin(localTime * 4);
+        const reticleOp = lockProgress < 1 ? (0.6 + 0.4 * reticlePulse) : 0.85;
+
+        // Word "Scan." slides up
+        const wordOp = wordT;
+        const wordY = (1 - wordT) * 30;
+
+        return (
+          <div style={{position:'absolute',inset:0, opacity:op, display:'flex', alignItems:'center', justifyContent:'center', gap:120}}>
+            {/* Reticle + tag */}
+            <div style={{position:'relative', width:420, height:560, display:'flex', alignItems:'center', justifyContent:'center'}}>
+              <div style={{position:'absolute', opacity:reticleOp, transform:`scale(${reticleScale})`}}>
+                <ScanReticle size={420} cornerLen={80} thickness={5} color={B.g400}/>
+              </div>
+              <div style={{opacity:tagT, transform:`scale(${0.9 + 0.1 * tagT})`}}>
+                <AssetTag id="ASSET-04821" name="Shure SM7B Mic" width={300}/>
+              </div>
+              {/* scan-success checkmark blink */}
+              {lockProgress >= 0.9 && (
+                <div style={{position:'absolute', top:-30, right:-30,
+                  background:B.g500, borderRadius:'50%', width:60, height:60,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  boxShadow:'0 0 30px rgba(16,185,129,0.6)',
+                  transform:`scale(${Easing.easeOutBack(clamp((localTime - 1.8)/0.5, 0, 1))})`,
+                }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12 L10 17 L19 8" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+            {/* Word */}
+            <div style={{opacity:wordOp, transform:`translateY(${wordY}px)`}}>
+              <div style={{fontFamily:B.mono,fontSize:14,color:B.g400,letterSpacing:'0.22em',textTransform:'uppercase',marginBottom:18}}>01 · Scan</div>
+              <div style={{fontFamily:B.display,fontWeight:700,fontSize:220,color:'#fff',letterSpacing:'-0.05em',lineHeight:0.9}}>Scan.</div>
+              <div style={{fontFamily:B.display,fontWeight:400,fontSize:28,color:B.n400,marginTop:18,maxWidth:480,lineHeight:1.3}}>
+                Point a phone at the QR. The asset is identified instantly.
+              </div>
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE C · TRACK (8 → 13.5) ============ */
+function CheckoutPanel() {
+  const { localTime } = useSprite();
+  // Form fields appear one by one
+  const f1 = Easing.easeOutCubic(clamp((localTime - 0.4)/0.4, 0, 1));
+  const f2 = Easing.easeOutCubic(clamp((localTime - 0.8)/0.4, 0, 1));
+  const f3 = Easing.easeOutCubic(clamp((localTime - 1.2)/0.4, 0, 1));
+  const btnT = Easing.easeOutBack(clamp((localTime - 1.8)/0.5, 0, 1));
+  const successT = clamp((localTime - 2.6)/0.4, 0, 1);
+
+  return (
+    <div style={{
+      width:540, background:'#fff', borderRadius:20, padding:'30px 32px',
+      boxShadow:'0 30px 80px -30px rgba(0,0,0,0.7)',
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:24}}>
+        <KeystoneTile size={36} radius={10} glow={false}/>
+        <div>
+          <div style={{fontFamily:B.display, fontWeight:600, fontSize:18, color:B.ink, letterSpacing:'-0.01em'}}>Check Out Asset</div>
+          <div style={{fontFamily:B.mono, fontSize:11, color:B.g600, letterSpacing:'0.1em', marginTop:2}}>ASSET-04821 · SHURE SM7B</div>
+        </div>
+      </div>
+
+      {/* Field 1: Assigned to */}
+      <div style={{opacity:f1, transform:`translateY(${(1-f1)*12}px)`, marginBottom:14}}>
+        <div style={{fontFamily:B.mono, fontSize:10, color:B.n400, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6}}>Assigned to</div>
+        <div style={{background:B.n50, border:'1px solid '+B.n100, borderRadius:10, padding:'12px 14px', display:'flex', alignItems:'center', gap:10}}>
+          <div style={{width:28, height:28, borderRadius:'50%', background:B.g600, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:B.display, fontWeight:600, fontSize:12}}>M</div>
+          <span style={{fontFamily:B.body, fontSize:15, color:B.ink, fontWeight:500}}>Maya Chen</span>
+          <span style={{fontFamily:B.mono, fontSize:11, color:B.n400, marginLeft:'auto'}}>maya@studio.co</span>
+        </div>
+      </div>
+
+      {/* Field 2: Due */}
+      <div style={{opacity:f2, transform:`translateY(${(1-f2)*12}px)`, marginBottom:14}}>
+        <div style={{fontFamily:B.mono, fontSize:10, color:B.n400, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6}}>Expected return</div>
+        <div style={{background:B.n50, border:'1px solid '+B.n100, borderRadius:10, padding:'12px 14px', display:'flex', alignItems:'center', gap:10}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke={B.n500} strokeWidth="2"/><path d="M8 3v4M16 3v4M3 10h18" stroke={B.n500} strokeWidth="2"/></svg>
+          <span style={{fontFamily:B.body, fontSize:15, color:B.ink, fontWeight:500}}>Friday · Mar 14, 5:00 PM</span>
+        </div>
+      </div>
+
+      {/* Field 3: Event tags */}
+      <div style={{opacity:f3, transform:`translateY(${(1-f3)*12}px)`, marginBottom:24}}>
+        <div style={{fontFamily:B.mono, fontSize:10, color:B.n400, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6}}>Event</div>
+        <div style={{display:'flex', gap:8}}>
+          <span style={{background:B.g50, color:B.g700, fontFamily:B.body, fontSize:13, fontWeight:500, padding:'6px 12px', borderRadius:8}}>Podcast S04</span>
+          <span style={{background:B.g50, color:B.g700, fontFamily:B.body, fontSize:13, fontWeight:500, padding:'6px 12px', borderRadius:8}}>Studio B</span>
+        </div>
+      </div>
+
+      {/* Confirm button */}
+      <div style={{opacity:successT < 0.5 ? btnT : 1 - successT*1.4, transform:`scale(${btnT})`, marginBottom: successT > 0 ? -1 : 0}}>
+        <div style={{
+          background:successT > 0.5 ? B.g500 : B.ink, color:'#fff',
+          fontFamily:B.display, fontWeight:600, fontSize:16, letterSpacing:'-0.01em',
+          textAlign:'center', padding:'16px', borderRadius:12, transition:'background 0.3s',
+        }}>{successT > 0.5 ? '✓ Checked Out' : 'Check Out'}</div>
+      </div>
+
+      {/* Success state slides up */}
+      {successT > 0 && (
+        <div style={{
+          position:'relative', marginTop:14, opacity:successT,
+          background:B.g50, border:'1px solid '+B.g100, borderRadius:12,
+          padding:'14px 16px', display:'flex', alignItems:'center', gap:10,
+        }}>
+          <div style={{width:24,height:24,borderRadius:'50%',background:B.g500,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12 L10 17 L19 8" stroke="#fff" strokeWidth="3" strokeLinecap="round"/></svg>
+          </div>
+          <div style={{fontFamily:B.body, fontSize:14, color:B.g700, fontWeight:500}}>Logged to audit trail · 12:04 PM</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SceneC() {
+  return (
+    <Sprite start={8} end={13.5}>
+      {({ localTime, duration }) => {
+        const outT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - outT);
+        const panelT = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        const wordT = Easing.easeOutBack(clamp((localTime - 0.3)/0.6, 0, 1));
+        return (
+          <div style={{position:'absolute',inset:0, opacity:op, display:'flex', alignItems:'center', justifyContent:'center', gap:120}}>
+            {/* Word */}
+            <div style={{opacity:wordT, transform:`translateY(${(1-wordT)*20}px)`}}>
+              <div style={{fontFamily:B.mono,fontSize:14,color:B.g400,letterSpacing:'0.22em',textTransform:'uppercase',marginBottom:18}}>02 · Track</div>
+              <div style={{fontFamily:B.display,fontWeight:700,fontSize:220,color:'#fff',letterSpacing:'-0.05em',lineHeight:0.9}}>Track.</div>
+              <div style={{fontFamily:B.display,fontWeight:400,fontSize:28,color:B.n400,marginTop:18,maxWidth:480,lineHeight:1.3}}>
+                Who. What. When. Logged automatically, every checkout.
+              </div>
+            </div>
+            <div style={{opacity:panelT, transform:`translateY(${(1-panelT)*30}px)`}}>
+              <CheckoutPanel/>
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE D · TRUST (13.5 → 19) ============ */
+function ActivityFeed() {
+  const { localTime } = useSprite();
+  const rows = [
+    { time: '12:04 PM', actor: 'Maya Chen',  event: 'Checked out',  asset: 'Shure SM7B · ASSET-04821', color: B.blue,  delay: 0.3 },
+    { time: '11:38 AM', actor: 'Jake Rivera', event: 'Returned',     asset: 'Aputure 300x · ASSET-07882', color: B.g600,  delay: 0.7 },
+    { time: '11:12 AM', actor: 'Priya Patel', event: 'Reported incident', asset: 'DJI Ronin 4D · ASSET-03340', color: B.amber, delay: 1.1 },
+    { time: '10:47 AM', actor: 'Sam Lin',    event: 'Checked out',  asset: 'Sony FX3 · ASSET-02103',  color: B.blue,  delay: 1.5 },
+    { time: '10:21 AM', actor: 'Devon Cole', event: 'Returned',     asset: 'Rode Wireless · ASSET-06214', color: B.g600,  delay: 1.9 },
+  ];
+  return (
+    <div style={{
+      width:620, background:'#fff', borderRadius:18, padding:'24px',
+      boxShadow:'0 30px 80px -30px rgba(0,0,0,0.7)',
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:18, paddingBottom:16, borderBottom:'1px solid '+B.n100}}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2" stroke={B.g600} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <div style={{fontFamily:B.display, fontWeight:600, fontSize:17, color:B.ink, letterSpacing:'-0.01em'}}>Audit trail</div>
+        <div style={{fontFamily:B.mono, fontSize:11, color:B.n400, marginLeft:'auto', letterSpacing:'0.08em'}}>LIVE</div>
+        <div style={{width:8, height:8, borderRadius:'50%', background:B.g500, boxShadow:'0 0 8px '+B.g400}}/>
+      </div>
+      {rows.map((r, i) => {
+        const t = Easing.easeOutCubic(clamp((localTime - r.delay)/0.4, 0, 1));
+        return (
+          <div key={i} style={{
+            opacity:t, transform:`translateX(${(1-t)*30}px)`,
+            display:'flex', alignItems:'center', gap:14, padding:'12px 0',
+            borderBottom: i < rows.length-1 ? '1px solid '+B.n100 : 'none',
+          }}>
+            <div style={{fontFamily:B.mono, fontSize:11, color:B.n400, width:74, letterSpacing:'0.04em'}}>{r.time}</div>
+            <div style={{flex:1}}>
+              <div style={{fontFamily:B.body, fontSize:14, color:B.ink}}>
+                <b style={{fontWeight:600}}>{r.actor}</b> · {r.asset}
+              </div>
+            </div>
+            <div style={{
+              fontFamily:B.mono, fontSize:10.5, letterSpacing:'0.1em', textTransform:'uppercase',
+              background:r.color+'18', color:r.color, padding:'5px 10px', borderRadius:6, fontWeight:500,
+            }}>{r.event}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SceneD() {
+  return (
+    <Sprite start={13.5} end={19}>
+      {({ localTime, duration }) => {
+        const outT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - outT);
+        const wordT = Easing.easeOutBack(clamp(localTime/0.6, 0, 1));
+        const feedT = Easing.easeOutCubic(clamp((localTime - 0.2)/0.6, 0, 1));
+        return (
+          <div style={{position:'absolute',inset:0, opacity:op, display:'flex', alignItems:'center', justifyContent:'center', gap:100}}>
+            <div style={{opacity:wordT, transform:`translateY(${(1-wordT)*20}px)`}}>
+              <div style={{fontFamily:B.mono,fontSize:14,color:B.g400,letterSpacing:'0.22em',textTransform:'uppercase',marginBottom:18}}>03 · Trust</div>
+              <div style={{fontFamily:B.display,fontWeight:700,fontSize:220,color:'#fff',letterSpacing:'-0.05em',lineHeight:0.9}}>Trust.</div>
+              <div style={{fontFamily:B.display,fontWeight:400,fontSize:28,color:B.n400,marginTop:18,maxWidth:480,lineHeight:1.3}}>
+                Every move on the record. Total accountability, no exceptions.
+              </div>
+            </div>
+            <div style={{opacity:feedT, transform:`translateY(${(1-feedT)*30}px)`}}>
+              <ActivityFeed/>
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE E · END CARD (19 → 22) ============ */
+function SceneE() {
+  return (
+    <Sprite start={19} end={22.5}>
+      {({ localTime, duration }) => {
+        const t = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        return (
+          <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', opacity:t, transform:`translateY(${(1-t)*16}px)`, gap:42}}>
+            <StewardLockup tileSize={120} wordSize={84}/>
+            <div style={{
+              fontFamily:B.display, fontWeight:500, fontSize:64, color:'#fff', letterSpacing:'-0.03em',
+              display:'flex', gap:30, alignItems:'baseline',
+            }}>
+              <span>Scan.</span>
+              <span style={{color:B.g400}}>Track.</span>
+              <span>Trust.</span>
+            </div>
+            <div style={{fontFamily:B.mono, fontSize:14, color:B.g400, letterSpacing:'0.18em', textTransform:'uppercase', marginTop:4}}>steward.app</div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ MAIN ============ */
+function Promo02() {
+  return (
+    <Stage width={1920} height={1080} duration={22.5} background={B.ink} persistKey="promo-02">
+      <TimestampLabel/>
+      <div style={{position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none'}}>
+        <EmeraldGlow x="-10%" y="20%" size="55%" intensity={0.16} blur={150}/>
+        <EmeraldGlow x="55%"  y="-10%" size="55%" intensity={0.14} blur={150}/>
+        <GridBg opacity={0.5} size={90}/>
+      </div>
+
+      <SceneA/>
+      <SceneB/>
+      <SceneC/>
+      <SceneD/>
+      <SceneE/>
+
+      {/* corner watermark from scene B onwards */}
+      <Sprite start={2.5} end={19}>
+        {({ localTime }) => {
+          const op = Easing.easeOutCubic(clamp(localTime/0.5, 0, 1)) * 0.75;
+          return (
+            <div style={{position:'absolute', top:48, left:60, opacity:op, display:'flex', alignItems:'center', gap:14}}>
+              <KeystoneTile size={40} radius={10} glow={false}/>
+              <span style={{fontFamily:B.display, fontWeight:600, fontSize:22, color:'#fff', letterSpacing:'-0.02em'}}>Steward</span>
+            </div>
+          );
+        }}
+      </Sprite>
+    </Stage>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Promo02/>);
+</script>
+</body>
+</html>
