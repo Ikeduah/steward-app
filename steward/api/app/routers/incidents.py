@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 
 from app.core.debs import get_db
 from app.core.security import clerk_guard
+from app.core.notifications import send_incident_notification
 from app.models.incident import Incident
 from app.models.asset import Asset
 from app.models.activity import ActivityLog
@@ -17,6 +18,7 @@ router = APIRouter()
 @router.post("", response_model=IncidentResponse)
 def report_incident(
     incident: IncidentCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     org_id: str = Depends(get_org_id),
     user_id: str = Depends(get_user_id)
@@ -71,6 +73,10 @@ def report_incident(
     
     db.commit()
     db.refresh(db_incident)
+    background_tasks.add_task(
+        send_incident_notification,
+        org_id, asset.name, user_id, db_incident.severity, db_incident.title,
+    )
     return db_incident
 
 def process_incident_lifecycle(db: Session, org_id: str):

@@ -21,6 +21,7 @@ class Assignment(Base):
     notes = Column(Text, nullable=True)
     condition_photo_url = Column(String, nullable=True)
     event_tags = Column(JSON, nullable=True) # List of tags e.g. ["Wedding", "Concert"]
-    
+    overdue_notified_at = Column(DateTime(timezone=True), nullable=True)
+
     # Relationships
     asset = relationship("Asset", backref="assignments")

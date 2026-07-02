@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -6,17 +6,19 @@ from datetime import datetime, timezone
 
 from app.core.debs import get_db
 from app.core.security import clerk_guard, ClerkCredentials
+from app.core.notifications import send_checkout_notification, send_checkin_notification
 from app.models.assignment import Assignment
 from app.models.asset import Asset
 from app.models.activity import ActivityLog
 from app.schemas.assignment import AssignmentCreate, AssignmentResponse, AssignmentUpdate
-from app.routers.assets import get_org_id, get_user_id, require_admin
+from app.routers.assets import get_org_id, get_user_id, require_admin, claims_is_admin
 
 router = APIRouter()
 
 @router.post("/checkout", response_model=AssignmentResponse)
 def checkout_asset(
     assignment: AssignmentCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     org_id: str = Depends(get_org_id),
     admin_id: str = Depends(get_user_id),
@@ -62,14 +64,20 @@ def checkout_asset(
     
     db.commit()
     db.refresh(db_assignment)
+    background_tasks.add_task(
+        send_checkout_notification,
+        org_id, asset.name, assignment.assigned_to, assignment.expected_return_at,
+    )
     return db_assignment
 
 @router.post("/checkin/{asset_id}", response_model=AssignmentResponse)
 def checkin_asset(
     asset_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     org_id: str = Depends(get_org_id),
-    user_id: str = Depends(get_user_id)
+    user_id: str = Depends(get_user_id),
+    creds: ClerkCredentials = Depends(clerk_guard)
 ):
     # 1. Find active assignment
     assignment = db.query(Assignment).filter(
@@ -77,10 +85,18 @@ def checkin_asset(
         Assignment.org_id == org_id,
         Assignment.status == "Active"
     ).first()
-    
+
     if not assignment:
         raise HTTPException(status_code=404, detail="No active assignment found for this asset")
-    
+
+    # 1b. Ownership check: members may only return an asset checked out to them.
+    #     Admins may return any asset in the org.
+    if not claims_is_admin(creds.decoded) and assignment.assigned_to != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only return an asset that was checked out to you."
+        )
+
     # 2. Update assignment status
     assignment.status = "Returned"
     assignment.actual_return_at = datetime.now(timezone.utc)
@@ -105,6 +121,8 @@ def checkin_asset(
     
     db.commit()
     db.refresh(assignment)
+    if asset:
+        background_tasks.add_task(send_checkin_notification, org_id, asset.name, user_id)
     return assignment
 
 @router.get("/active", response_model=List[AssignmentResponse])

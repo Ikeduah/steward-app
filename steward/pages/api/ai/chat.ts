@@ -1,8 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 /**
- * AI Chat endpoint — temporarily disabled.
- * Full implementation preserved below for future release.
+ * AI Chat endpoint — intentionally deferred (planned/future feature).
+ *
+ * This is a documented, deliberate hold-back, not an incomplete build: the AI
+ * assistant is on the post-launch roadmap. The full implementation is preserved
+ * below and can be re-enabled by uncommenting it, removing the stub, and setting
+ * ANTHROPIC_API_KEY. Until then this endpoint returns 503 by design.
  */
 export default function handler(_req: NextApiRequest, res: NextApiResponse) {
   res.status(503).json({ error: "AI features are not available yet. Coming soon." });

@@ -97,9 +97,13 @@ export default function AssignmentsPage() {
             if (res.ok) {
                 mutateAssignments();
                 mutateAssets();
+            } else {
+                const data = await res.json().catch(() => null);
+                alert(data?.detail || "Check-in failed. You may not be allowed to return this asset.");
             }
         } catch (error) {
             console.error("Check-in failed:", error);
+            alert("Check-in failed. Please try again.");
         } finally {
             setIsProcessing(null);
         }

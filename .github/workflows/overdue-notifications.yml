@@ -1,0 +1,19 @@
+name: Overdue Equipment Notifications
+
+on:
+  schedule:
+    # Runs daily at 8:00 AM UTC
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+    # Allow manual runs for testing from the GitHub Actions UI
+
+jobs:
+  notify-overdue:
+    name: Check for overdue assignments
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger overdue-check
+        run: |
+          curl --fail --silent --show-error \
+            -X POST "${{ vars.STEWARD_APP_URL }}/api/cron/overdue-check" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

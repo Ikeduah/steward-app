@@ -40,13 +40,18 @@ def get_user_id(creds: ClerkCredentials = Depends(clerk_guard)) -> str:
     
     return user_id
 
-def require_admin(creds: ClerkCredentials = Depends(clerk_guard)):
-    claims = creds.decoded
+def claims_is_admin(claims: dict) -> bool:
+    """Return True if the decoded Clerk JWT claims represent an org admin.
+
+    Clerk's raw token stores "admin"; the SDK normalizes to "org:admin" on the
+    frontend. Minified tokens nest the role under "o" as "rol"/"role"/"r".
+    """
     org_data = claims.get("o") or claims.get("org") or {}
     role = claims.get("org_role") or org_data.get("rol") or org_data.get("role") or org_data.get("r")
+    return role in ("admin", "org:admin")
 
-    # Clerk JWT stores "admin" in raw token; SDK normalizes to "org:admin" on frontend
-    if role not in ("admin", "org:admin"):
+def require_admin(creds: ClerkCredentials = Depends(clerk_guard)):
+    if not claims_is_admin(creds.decoded):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required for this action"
