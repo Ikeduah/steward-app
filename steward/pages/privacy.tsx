@@ -26,7 +26,7 @@ export default function Privacy() {
                     <section>
                         <h2 className="text-xl font-bold text-white mb-4">1. Information We Collect</h2>
                         <p>
-                            Steward collects information necessary to manage your organization's inventory. This includes
+                            Steward collects information necessary to manage your organization&apos;s inventory. This includes
                             your name and email (provided via Clerk), and any equipment data you manually enter into the system.
                         </p>
                     </section>
@@ -51,8 +51,8 @@ export default function Privacy() {
                         </p>
                         <ul className="list-disc pl-6 mt-4 space-y-2">
                             <li><strong>Authentication:</strong> Managed securely by Clerk.</li>
-                            <li><strong>Database:</strong> Hosted on Neon's secure PostgreSQL platform.</li>
-                            <li><strong>Hosting:</strong> Secured by Vercel's global infrastructure.</li>
+                            <li><strong>Database:</strong> Hosted on Neon&apos;s secure PostgreSQL platform.</li>
+                            <li><strong>Hosting:</strong> Secured by Vercel&apos;s global infrastructure.</li>
                             <li><strong>Email Delivery:</strong> Transactional notifications (checkouts, incidents, overdue reminders) are sent via Resend.</li>
                             <li><strong>Photo Storage:</strong> Asset and condition photos are stored via Vercel Blob.</li>
                         </ul>
@@ -74,9 +74,9 @@ export default function Privacy() {
                     <section>
                         <h2 className="text-xl font-bold text-white mb-4">5. Data Retention</h2>
                         <p>
-                            Activity and audit log history is retained according to your organization's plan: 30 days
+                            Activity and audit log history is retained according to your organization&apos;s plan: 30 days
                             of history on the Starter plan, and unlimited history on the Pro plan. Data older than
-                            your plan's retention window may no longer be accessible through the platform.
+                            your plan&apos;s retention window may no longer be accessible through the platform.
                         </p>
                     </section>
 
@@ -84,7 +84,7 @@ export default function Privacy() {
                         <h2 className="text-xl font-bold text-white mb-4">6. Your Rights</h2>
                         <p>
                             You have the right to access, correct, or delete your data at any time via your
-                            Organization's administrator or by contacting Steward support.
+                            Organization&apos;s administrator or by contacting Steward support.
                         </p>
                     </section>
                 </div>
