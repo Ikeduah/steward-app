@@ -46,6 +46,13 @@ export default function AssetsPage() {
 
         try {
             const token = await getToken();
+            // Collect blob images to clean up once the assets are deleted.
+            const blobUrls = Array.isArray(assets)
+                ? assets
+                      .filter((a: any) => selectedIds.includes(a.id) && typeof a.image_url === "string" && a.image_url.includes(".blob.vercel-storage.com/"))
+                      .map((a: any) => a.image_url as string)
+                : [];
+
             await Promise.all(
                 selectedIds.map(id =>
                     fetch(`/api/assets/${id}`, {
@@ -54,6 +61,18 @@ export default function AssetsPage() {
                     })
                 )
             );
+
+            // Best-effort blob cleanup — a leaked blob is non-fatal.
+            await Promise.all(
+                blobUrls.map(url =>
+                    fetch("/api/assets/delete-blob", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url }),
+                    }).catch(() => {})
+                )
+            );
+
             setSelectedIds([]);
             mutate();
         } catch (err) {

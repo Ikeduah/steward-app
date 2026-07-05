@@ -1,7 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { X, Upload, Loader2, Printer } from "lucide-react";
+import { X, Upload, Loader2, Printer, Trash2 } from "lucide-react";
 import QRCode from "react-qr-code";
+import { upload } from "@vercel/blob/client";
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB — matches the upload-url server limit
+
+/** Best-effort delete of a Vercel Blob (no-op for non-blob/empty URLs). */
+async function deleteBlob(url: string | undefined | null) {
+    if (!url || !url.includes(".blob.vercel-storage.com/")) return;
+    try {
+        await fetch("/api/assets/delete-blob", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+        });
+    } catch {
+        // Cleanup is best-effort; a leaked blob is non-fatal.
+    }
+}
 
 interface Asset {
     id?: number;
@@ -22,6 +39,7 @@ interface AssetFormModalProps {
 export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormModalProps) {
     const { getToken } = useAuth();
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [error, setError] = useState("");
 
     const [formData, setFormData] = useState({
@@ -31,6 +49,12 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
         qr_code: "",
         image_url: "",
     });
+
+    // The image URL the asset had when the modal opened (persisted value).
+    const initialImageUrlRef = useRef("");
+    // A blob uploaded during this session that is not yet persisted — tracked so
+    // we can clean it up if the user re-uploads or cancels without saving.
+    const pendingUploadRef = useRef<string | null>(null);
 
     // Pre-populate form when editing
     useEffect(() => {
@@ -42,6 +66,7 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                 qr_code: asset.qr_code || "",
                 image_url: asset.image_url || "",
             });
+            initialImageUrlRef.current = asset.image_url || "";
         } else {
             // Generate random QR code for new assets
             setFormData({
@@ -51,9 +76,60 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                 qr_code: `QR-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 image_url: "",
             });
+            initialImageUrlRef.current = "";
         }
+        pendingUploadRef.current = null;
         setError("");
     }, [asset, isOpen]);
+
+    // Discard an unsaved blob when the modal is dismissed without saving.
+    const handleClose = () => {
+        if (pendingUploadRef.current && pendingUploadRef.current !== initialImageUrlRef.current) {
+            deleteBlob(pendingUploadRef.current);
+        }
+        pendingUploadRef.current = null;
+        onClose();
+    };
+
+    const handleFileSelected = async (file: File) => {
+        if (!file.type.startsWith("image/")) {
+            setError("Only image files are allowed.");
+            return;
+        }
+        if (file.size > MAX_IMAGE_BYTES) {
+            setError("Image must be under 5MB.");
+            return;
+        }
+        setError("");
+        setUploading(true);
+        // The previous session upload becomes an orphan once we replace it.
+        const previousPending = pendingUploadRef.current;
+        try {
+            const blob = await upload(file.name, file, {
+                access: "public",
+                handleUploadUrl: "/api/assets/upload-url",
+            });
+            if (previousPending && previousPending !== initialImageUrlRef.current) {
+                deleteBlob(previousPending);
+            }
+            pendingUploadRef.current = blob.url;
+            setFormData((prev) => ({ ...prev, image_url: blob.url }));
+        } catch (err: any) {
+            setError(err?.message || "Image upload failed. Please try again.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        // If the current image is an unsaved session upload, delete it now.
+        if (pendingUploadRef.current && pendingUploadRef.current === formData.image_url) {
+            deleteBlob(pendingUploadRef.current);
+            pendingUploadRef.current = null;
+        }
+        // A persisted image is only removed from storage once the change is saved.
+        setFormData((prev) => ({ ...prev, image_url: "" }));
+    };
 
     const handlePrintQR = () => {
         const printWindow = window.open('', '_blank');
@@ -183,6 +259,16 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                 throw new Error(message);
             }
 
+            // Save succeeded: the persisted image is now `formData.image_url`.
+            // If it replaced a different persisted blob, clean the old one up.
+            if (
+                initialImageUrlRef.current &&
+                initialImageUrlRef.current !== formData.image_url
+            ) {
+                deleteBlob(initialImageUrlRef.current);
+            }
+            pendingUploadRef.current = null;
+
             onSuccess();
             onClose();
         } catch (err: any) {
@@ -206,7 +292,7 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                         <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Details & Specifications</p>
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="p-2 bg-gray-50 text-gray-400 hover:text-gray-600 rounded-full transition-all active:scale-90"
                         disabled={loading}
                     >
@@ -279,38 +365,53 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-700 ml-1">Photo Reference</label>
                         <div className="grid grid-cols-1 gap-3">
-                            <label className="cursor-pointer group">
-                                <div className="flex flex-col items-center justify-center py-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl group-hover:border-gray-400 group-hover:bg-gray-100/50 transition-all">
-                                    {formData.image_url ? (
+                            {formData.image_url && !uploading ? (
+                                <div className="relative">
+                                    <div className="flex items-center justify-center py-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl">
                                         <div className="relative w-full px-4 h-32">
                                             <img src={formData.image_url} className="w-full h-full object-contain rounded-lg" alt="Preview" />
-                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 rounded-lg">
-                                                <span className="text-[10px] font-extrabold text-white bg-black px-2 py-1 rounded">CHANGE</span>
-                                            </div>
                                         </div>
-                                    ) : (
-                                        <>
-                                            <Upload className="w-6 h-6 text-gray-400 mb-2" />
-                                            <span className="text-[11px] font-bold text-gray-500">Tap to Upload Photo</span>
-                                        </>
-                                    )}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveImage}
+                                        disabled={loading}
+                                        title="Remove photo"
+                                        className="absolute top-2 right-2 p-1.5 bg-white text-gray-400 hover:text-red-600 rounded-full shadow-sm border border-gray-200 transition-all active:scale-90"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <label className="mt-2 block cursor-pointer text-center text-[11px] font-bold text-gray-500 hover:text-black transition-colors">
+                                        CHANGE PHOTO
+                                        <input type="file" accept="image/*" className="hidden" disabled={loading || uploading} onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleFileSelected(file);
+                                            e.target.value = "";
+                                        }} />
+                                    </label>
                                 </div>
-                                <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    if (!file.type.startsWith("image/")) {
-                                        setError("Only image files are allowed.");
-                                        return;
-                                    }
-                                    if (file.size > 2 * 1024 * 1024) {
-                                        setError("Image must be under 2MB.");
-                                        return;
-                                    }
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => setFormData({ ...formData, image_url: reader.result as string });
-                                    reader.readAsDataURL(file);
-                                }} disabled={loading} />
-                            </label>
+                            ) : (
+                                <label className="cursor-pointer group">
+                                    <div className="flex flex-col items-center justify-center py-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl group-hover:border-gray-400 group-hover:bg-gray-100/50 transition-all">
+                                        {uploading ? (
+                                            <>
+                                                <Loader2 className="w-6 h-6 text-gray-400 mb-2 animate-spin" />
+                                                <span className="text-[11px] font-bold text-gray-500">Uploading…</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="w-6 h-6 text-gray-400 mb-2" />
+                                                <span className="text-[11px] font-bold text-gray-500">Tap to Upload Photo</span>
+                                            </>
+                                        )}
+                                    </div>
+                                    <input type="file" accept="image/*" className="hidden" disabled={loading || uploading} onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleFileSelected(file);
+                                        e.target.value = "";
+                                    }} />
+                                </label>
+                            )}
                         </div>
                     </div>
 
@@ -355,7 +456,7 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                 <div className="p-5 bg-white border-t border-gray-100 sticky bottom-0 z-10 flex gap-3">
                     <button
                         type="button"
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="flex-1 py-3 px-4 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors"
                         disabled={loading}
                     >
@@ -363,11 +464,13 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                     </button>
                     <button
                         type="submit"
-                        disabled={loading}
-                        className="flex-[2] py-3 px-4 bg-black text-white rounded-xl text-xs font-extrabold shadow-lg shadow-black/10 hover:bg-gray-900 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        disabled={loading || uploading}
+                        className="flex-[2] py-3 px-4 bg-black text-white rounded-xl text-xs font-extrabold shadow-lg shadow-black/10 hover:bg-gray-900 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                     >
                         {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : uploading ? (
+                            <span>UPLOADING…</span>
                         ) : (
                             <span>{asset ? "SAVE CHANGES" : "CREATE ASSET"}</span>
                         )}
