@@ -22,6 +22,30 @@ const nextConfig: NextConfig = {
       ],
     };
   },
+  // Baseline security headers. CSP is intentionally deferred — Next inline
+  // scripts + Clerk make a correct policy non-trivial; track as follow-up.
+  headers: async () => {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            // camera stays allowed for self — the QR scanner (html5-qrcode)
+            // in the checkout flow needs it.
+            key: "Permissions-Policy",
+            value: "camera=(self), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

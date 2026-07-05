@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -15,7 +16,9 @@ from app.core.db import Base, engine
 from app.routers import assets, assignments, activity, incidents, billing, internal
 from app.models.assignment import Assignment 
 from app.models.activity import ActivityLog 
-from app.models.incident import Incident 
+from app.models.incident import Incident
+
+logger = logging.getLogger(__name__)
 
 # Initialize Database
 # Production/staging schema is managed by Alembic migrations (run externally:
@@ -44,6 +47,7 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500,
         content={"detail": "An internal server error occurred."},
