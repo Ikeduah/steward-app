@@ -1,0 +1,194 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Steward — Demo · Dashboard Tour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0a; overflow: hidden; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  #root { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="root" data-video-root data-screen-label="t=0s"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="animations.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+<script type="text/babel" src="steward-ui.jsx"></script>
+
+<script type="text/babel">
+const B = StewardBrand;
+
+/* Shell is 1680x920. In a 1920x1080 stage: offset 120px L/R, 80px T/B */
+const SHELL_X = 120, SHELL_Y = 80;
+
+/* ============ COLD OPEN (0 → 3) ============ */
+function Cold() {
+  return (
+    <Sprite start={0} end={3}>
+      {({ localTime, duration }) => {
+        const t = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        const out = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - out) * t;
+        return (
+          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center', opacity:op, gap:30}}>
+            <div style={{fontFamily:B.mono, fontSize:14, color:B.g400, letterSpacing:'0.26em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:14}}>
+              <span style={{width:36, height:1.5, background:B.g400}}/>
+              Demo · 01
+              <span style={{width:36, height:1.5, background:B.g400}}/>
+            </div>
+            <div style={{fontFamily:B.display, fontWeight:600, fontSize:140, color:'#fff', letterSpacing:'-0.045em', lineHeight:0.95, textAlign:'center'}}>
+              Dashboard
+            </div>
+            <div style={{fontFamily:B.display, fontWeight:400, fontSize:28, color:B.n300, marginTop:6}}>
+              Your inventory, at a glance.
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SHELL ENTRANCE + CAPTIONS (3 → 23) ============ */
+/* Cursor script. Coords are in stage-space; shell is at (120, 80). */
+const cursor1 = [
+  { t: 6.0,  x: 920, y: 540 },                  // off-stage start near center
+  { t: 7.5,  x: 260, y: 360, click: true },     // hover Dashboard
+  { t: 10.0, x: 700, y: 360 },                  // drift to first KPI
+  { t: 12.5, x: 1100, y: 360 },                 // next KPI
+  { t: 14.5, x: 1500, y: 360 },                 // needs attention KPI
+  { t: 17.0, x: 700, y: 700 },                  // recent activity
+  { t: 19.5, x: 850, y: 860 },                  // scrolling thru
+];
+
+function ShellScene() {
+  return (
+    <Sprite start={3} end={23}>
+      {({ localTime, duration }) => {
+        // Shell entrance: scale + opacity 0 → 1 over 1s
+        const ent = Easing.easeOutCubic(clamp(localTime/1.0, 0, 1));
+        const shellOp = ent;
+        const shellY = (1 - ent) * 50;
+        const shellScale = 0.96 + 0.04 * ent;
+
+        // Sidebar items reveal one-by-one (1s after shell)
+        const sidebarT = clamp((localTime - 1.0) / 1.8, 0, 1);
+        const visibleItems = Math.ceil(sidebarT * NAV_ITEMS.length);
+
+        // KPI cards animate after 4s
+        const kpiT = clamp((localTime - 4.0)/0.6, 0, 1);
+        const kpiOp = Easing.easeOutCubic(kpiT);
+        // Count-up: 0→10, 0→1, 0→1 (smooth, then settle)
+        const countT = clamp((localTime - 4.2)/1.6, 0, 1);
+        const e = Easing.easeOutCubic(countT);
+        const v1 = Math.round(10 * e);
+        const v2 = Math.round(1 * e);
+        const v3 = Math.round(1 * e);
+
+        // Activity rows stream in starting at 7s
+        const actStart = 7.5;
+        const rowOp = (i) => Easing.easeOutCubic(clamp((localTime - actStart - i*0.35)/0.5, 0, 1));
+
+        // Caption strip
+        const captions = [
+          { from: 0.5,  to: 5.0,  text: 'Sidebar nav · jump anywhere in seconds' },
+          { from: 5.0,  to: 10.5, text: '10 ready · 1 checked out · 1 needs attention' },
+          { from: 10.5, to: 16.0, text: 'Live recent activity · every move logged' },
+          { from: 16.0, to: 20.0, text: 'One source of truth · for the whole team' },
+        ];
+        const cap = captions.find(c => localTime >= c.from && localTime < c.to);
+        const capT = cap ? Easing.easeOutCubic(clamp((localTime - cap.from)/0.4, 0, 1)) * Easing.easeOutCubic(clamp((cap.to - localTime)/0.4, 0, 1)) : 0;
+
+        return (
+          <div style={{position:'absolute', inset:0}}>
+            {/* Shell wrapper */}
+            <div style={{
+              position:'absolute', left:SHELL_X, top:SHELL_Y, width:1680, height:920,
+              opacity:shellOp, transform:`translateY(${shellY}px) scale(${shellScale})`, transformOrigin:'center top',
+            }}>
+              <AppShell active="dashboard" revealItems={visibleItems}>
+                <PageHeader title="Dashboard" sub="Overview of your inventory status."/>
+                {/* KPI ROW */}
+                <div style={{display:'flex', gap:18, marginBottom:32}}>
+                  <KpiCard t={kpiOp} primary color={B.g500} label="Available" value={v1} sub="Ready for use"
+                    icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6" strokeLinecap="round" strokeLinejoin="round"/></svg>}/>
+                  <KpiCard t={kpiOp} color={B.ink} label="Checked Out" value={v2} sub="Active assignments"
+                    icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 12h6M9 16h4"/></svg>}/>
+                  <KpiCard t={kpiOp} primary color={B.amber} label="Needs Attention" value={v3} sub="Repair or maintenance"
+                    icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 4l-8 14a2 2 0 0 0 1.7 3h16a2 2 0 0 0 1.7-3l-8-14a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>}/>
+                </div>
+                {/* RECENT ACTIVITY */}
+                <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:16, marginTop:8}}>
+                  <div style={{fontFamily:B.display, fontWeight:700, fontSize:24, color:B.ink, letterSpacing:'-0.015em'}}>Recent Activity</div>
+                  <div style={{fontFamily:B.mono, fontSize:11, color:B.n400, letterSpacing:'0.12em', textTransform:'uppercase'}}>View all</div>
+                </div>
+                <div style={{background:'#fff', borderRadius:14, border:'1px solid '+B.n100, padding:'4px 24px'}}>
+                  <ActivityRow t={rowOp(0)} icon="plus" name="DJI Inspire 3 Drone Package" who="Maya Chen"     when="1m ago"/>
+                  <ActivityRow t={rowOp(1)} icon="plus" name="ARRI Alexa Mini LF · Body"   who="Maya Chen"     when="6m ago"/>
+                  <ActivityRow t={rowOp(2)} icon="plus" name="MacBook Pro M3 Max 64GB"      who="Jordan Reyes"  when="24m ago"/>
+                  <ActivityRow t={rowOp(3)} icon="plus" name="DeWalt 60V MAX Jackhammer"    who="Jordan Reyes"  when="25m ago"/>
+                  <ActivityRow t={rowOp(4)} icon="edit" name="Shure QLX-D Wireless Mic #4" who="Sam Lin"        when="25m ago"/>
+                </div>
+              </AppShell>
+            </div>
+
+            {/* Caption strip at bottom */}
+            {cap && (
+              <div style={{
+                position:'absolute', bottom:40, left:0, right:0, display:'flex', justifyContent:'center',
+                opacity:capT, transform:`translateY(${(1-capT)*12}px)`,
+              }}>
+                <div style={{
+                  background:'rgba(6,20,14,0.85)', backdropFilter:'blur(20px)',
+                  border:'1px solid rgba(52,211,153,0.25)', borderRadius:999,
+                  padding:'12px 24px', display:'flex', alignItems:'center', gap:14,
+                }}>
+                  <div style={{width:8, height:8, borderRadius:'50%', background:B.g400, boxShadow:`0 0 12px ${B.g500}`}}/>
+                  <span style={{fontFamily:B.display, fontWeight:500, fontSize:20, color:'#fff', letterSpacing:'-0.01em'}}>{cap.text}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Cursor */}
+            <Cursor script={cursor1}/>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ END CARD (23 → 27) ============ */
+function End() {
+  return (
+    <Sprite start={23} end={27}>
+      <EndCard tagline="Your inventory, at a glance." url="steward.app"/>
+    </Sprite>
+  );
+}
+
+function Demo01() {
+  return (
+    <Stage width={1920} height={1080} duration={27} background={B.ink} persistKey="demo-01">
+      <TimestampLabel/>
+      <PromoBackdrop/>
+      <CornerWatermark start={3.5} end={23}/>
+      <Cold/>
+      <ShellScene/>
+      <End/>
+    </Stage>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo01/>);
+</script>
+</body>
+</html>

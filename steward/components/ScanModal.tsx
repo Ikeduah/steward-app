@@ -28,7 +28,7 @@ export function ScanModal({ isOpen, onClose, onScan }: ScanModalProps) {
                     }
                 },
                 (error) => {
-                    // console.warn(error);
+                    // Scan errors are expected (e.g. no QR in frame) — intentionally ignored
                 }
             );
         }
@@ -69,10 +69,10 @@ export function ScanModal({ isOpen, onClose, onScan }: ScanModalProps) {
                     {/* Visual Overlay */}
                     <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
                         <div className="w-64 h-64 border-2 border-white/20 rounded-3xl relative">
-                            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-red-500 rounded-tl-lg"></div>
-                            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-red-500 rounded-tr-lg"></div>
-                            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-red-500 rounded-bl-lg"></div>
-                            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-red-500 rounded-br-lg"></div>
+                            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg"></div>
+                            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg"></div>
+                            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg"></div>
+                            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg"></div>
                         </div>
                         <p className="mt-8 text-white/60 text-xs font-bold uppercase tracking-wider animate-pulse">Scanning for match...</p>
                     </div>

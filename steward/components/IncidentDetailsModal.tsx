@@ -2,15 +2,12 @@ import { useState, useEffect } from "react";
 import { useAuth, useOrganization } from "@clerk/nextjs";
 import {
     X,
-    AlertCircle,
     Loader2,
     MessageSquare,
     Clock,
     User,
     Send,
     AlertTriangle,
-    CheckCircle2,
-    XCircle,
     Box
 } from "lucide-react";
 

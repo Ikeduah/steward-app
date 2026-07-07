@@ -36,3 +36,12 @@ __pycache__/
 
 # vercel
 .vercel
+
+# local agent/skill tooling (not part of the app)
+.claude/
+.agent/
+
+steward-brand-kit/*
+
+# internal audit / launch-prep docs (not for production or the public repo)
+PRODUCTION-READINESS-REPORT.md

@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Steward — Demo · Audit Trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;padding:0;height:100%;background:#0a0a0a;overflow:hidden}body{font-family:Inter,system-ui,sans-serif}#root{position:absolute;inset:0}</style>
+</head>
+<body>
+<div id="root" data-video-root data-screen-label="t=0s"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="animations.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+<script type="text/babel" src="steward-ui.jsx"></script>
+
+<script type="text/babel">
+const B = StewardBrand;
+const SHELL_X = 120, SHELL_Y = 80;
+
+function Cold() {
+  return (
+    <Sprite start={0} end={3}>
+      {({ localTime, duration }) => {
+        const t = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        const out = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - out) * t;
+        return (
+          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center', opacity:op, gap:30}}>
+            <div style={{fontFamily:B.mono, fontSize:14, color:B.g400, letterSpacing:'0.26em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:14}}>
+              <span style={{width:36, height:1.5, background:B.g400}}/>Demo · 05<span style={{width:36, height:1.5, background:B.g400}}/>
+            </div>
+            <div style={{fontFamily:B.display, fontWeight:600, fontSize:140, color:'#fff', letterSpacing:'-0.045em', lineHeight:0.95, textAlign:'center'}}>Audit Trail</div>
+            <div style={{fontFamily:B.display, fontWeight:400, fontSize:28, color:B.n300}}>Every move, on the record.</div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+const ALL_LOGS = [
+  { who:'Maya Chen',     action:'added',           what:'DJI Inspire 3 Drone Package',  when:'19m ago' },
+  { who:'Maya Chen',     action:'added',           what:'ARRI Alexa Mini LF · Body',    when:'24m ago' },
+  { who:'Jordan Reyes',  action:'added',           what:'MacBook Pro M3 Max 64GB',      when:'24m ago' },
+  { who:'Jordan Reyes',  action:'added',           what:'DeWalt 60V MAX Jackhammer',    when:'25m ago' },
+  { who:'Sam Lin',       action:'added',           what:'Shure QLX-D Wireless Mic #4', when:'25m ago' },
+  { who:'Maya Chen',     action:'added',           what:'DJI Inspire 3 Drone Package',  when:'26m ago' },
+  { who:'Sam Lin',       action:'changed status for', what:'Sony FX3 Cinema Camera',
+    when:'2d ago', changes:{ fields:'name, description, qr_code, image_url', from:'Maintenance', to:'Available' } },
+];
+
+const cursor = [
+  { t: 4.5,  x: 820, y: 280, click: true },     // search field
+  { t: 8.0,  x: 1300, y: 280, click: true },    // filter dropdown
+  { t: 11.0, x: 800, y: 700 },                  // hover row with diff
+  { t: 13.5, x: 900, y: 760 },                  // closer to diff
+];
+
+function Walk() {
+  return (
+    <Sprite start={3} end={23}>
+      {({ localTime, duration }) => {
+        const ent = Easing.easeOutCubic(clamp(localTime/0.8, 0, 1));
+        const shellOp = ent, shellY = (1-ent)*40;
+
+        // Typing search "Sony" at ~2s
+        const typed = 'Sony'.slice(0, Math.floor(clamp((localTime - 1.8)/1.2, 0, 1) * 4));
+        const isTyping = localTime >= 1.8 && localTime < 3.0;
+        // Filter dropdown opens at ~5s, selects "Status Changes" at 5.8
+        const filterOpen = localTime >= 5.0 && localTime < 6.0;
+        const filterValue = localTime >= 5.8 ? 'Status Changes' : 'All Events';
+
+        // Filtered logs
+        let visible = ALL_LOGS;
+        if (typed.length > 0) visible = visible.filter(l => l.what.toLowerCase().includes(typed.toLowerCase()));
+        if (filterValue === 'Status Changes') visible = visible.filter(l => l.changes);
+
+        // Rows fade in
+        const rowOp = (i) => Easing.easeOutCubic(clamp((localTime - 0.4 - i*0.08)/0.4, 0, 1));
+
+        // Zoom into the diff card at ~8s
+        const zoomT = clamp((localTime - 8.0)/0.6, 0, 1);
+        const zoom = Easing.easeOutCubic(zoomT);
+
+        // Diff panel expands at 9.5s
+        const diffT = clamp((localTime - 9.5)/0.6, 0, 1);
+        const diff = Easing.easeOutCubic(diffT);
+
+        const captions = [
+          { from: 0.6, to: 4.5,  text: 'Every action on every asset · indexed and searchable' },
+          { from: 4.5, to: 8.0,  text: 'Filter by event type · narrow to status changes' },
+          { from: 8.0, to: 12.0, text: 'See exactly what changed · old value → new value' },
+          { from: 12.0, to: 16.5, text: 'Who. What. When. Audit-ready, every time.' },
+        ];
+        const cap = captions.find(c => localTime >= c.from && localTime < c.to);
+        const capT = cap ? Easing.easeOutCubic(clamp((localTime - cap.from)/0.3, 0, 1)) * Easing.easeOutCubic(clamp((cap.to - localTime)/0.3, 0, 1)) : 0;
+
+        return (
+          <div style={{position:'absolute', inset:0}}>
+            <div style={{position:'absolute', left:SHELL_X, top:SHELL_Y, width:1680, height:920, opacity:shellOp, transform:`translateY(${shellY}px)`}}>
+              <AppShell active="activity">
+                <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:32}}>
+                  <div style={{display:'flex', alignItems:'center', gap:14}}>
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={B.ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>
+                    <div>
+                      <div style={{fontFamily:B.display, fontWeight:700, fontSize:42, color:B.ink, letterSpacing:'-0.025em', marginBottom:6}}>Activity Log</div>
+                      <p style={{fontFamily:B.body, fontSize:16, color:B.n500}}>Audit trail of all asset movements.</p>
+                    </div>
+                  </div>
+                </div>
+                <div style={{display:'flex', gap:14, marginBottom:24}}>
+                  <SearchBar placeholder="Search asset or user..." value={typed} cursor={isTyping}/>
+                  <div style={{position:'relative'}}>
+                    <FilterDropdown value={filterValue}/>
+                    {filterOpen && (
+                      <div style={{
+                        position:'absolute', top:'110%', right:0, background:'#fff', border:'1px solid '+B.n200, borderRadius:12,
+                        padding:8, minWidth:200, boxShadow:'0 20px 40px -20px rgba(0,0,0,0.25)', zIndex:5,
+                      }}>
+                        {['All Events','Added','Checked Out','Returned','Status Changes','Incidents'].map(o => (
+                          <div key={o} style={{
+                            padding:'10px 12px', borderRadius:8, fontFamily:B.body, fontSize:14,
+                            background: o === 'Status Changes' && localTime >= 5.6 ? B.g50 : 'transparent',
+                            color: o === 'Status Changes' && localTime >= 5.6 ? B.g700 : B.ink, fontWeight:500,
+                          }}>{o}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {/* Logs */}
+                <div>
+                  {visible.map((log, i) => {
+                    const isDiff = !!log.changes;
+                    const zoomed = isDiff && zoom > 0;
+                    return (
+                      <div key={i} style={{
+                        transform: zoomed ? `scale(${1 + 0.05 * zoom})` : 'scale(1)',
+                        transformOrigin:'left center',
+                        boxShadow: zoomed ? `0 20px 50px -20px ${B.g500}55, 0 0 0 ${2 * zoom}px ${B.g400}` : 'none',
+                        borderRadius:12, transition:'all 0.2s', marginBottom:12,
+                      }}>
+                        <AuditRow t={rowOp(i)} who={log.who} action={log.action} what={log.what} when={log.when} changes={isDiff && diff > 0.3 ? log.changes : null}/>
+                      </div>
+                    );
+                  })}
+                  {/* Empty hint when filtered tight */}
+                  {visible.length === 0 && (
+                    <div style={{padding:'40px', textAlign:'center', fontFamily:B.body, fontSize:15, color:B.n400}}>
+                      No matching events.
+                    </div>
+                  )}
+                </div>
+              </AppShell>
+            </div>
+
+            {cap && (
+              <div style={{position:'absolute', bottom:40, left:0, right:0, display:'flex', justifyContent:'center', opacity:capT, transform:`translateY(${(1-capT)*12}px)`}}>
+                <div style={{background:'rgba(6,20,14,0.85)', backdropFilter:'blur(20px)', border:'1px solid rgba(52,211,153,0.25)', borderRadius:999, padding:'12px 24px', display:'flex', alignItems:'center', gap:14}}>
+                  <div style={{width:8, height:8, borderRadius:'50%', background:B.g400, boxShadow:`0 0 12px ${B.g500}`}}/>
+                  <span style={{fontFamily:B.display, fontWeight:500, fontSize:20, color:'#fff', letterSpacing:'-0.01em'}}>{cap.text}</span>
+                </div>
+              </div>
+            )}
+            <Cursor script={cursor}/>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+function End() { return <Sprite start={23} end={27}><EndCard tagline="Every move, on the record." url="steward.app"/></Sprite>; }
+
+function Demo() {
+  return (
+    <Stage width={1920} height={1080} duration={27} background={B.ink} persistKey="demo-05">
+      <TimestampLabel/>
+      <PromoBackdrop/>
+      <CornerWatermark start={3.5} end={23}/>
+      <Cold/><Walk/><End/>
+    </Stage>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

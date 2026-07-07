@@ -1,22 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from app.core.debs import get_db
 from app.core.security import clerk_guard
+from app.core.notifications import send_incident_notification
 from app.models.incident import Incident
 from app.models.asset import Asset
 from app.models.activity import ActivityLog
 from app.schemas.incident import IncidentCreate, IncidentResponse, IncidentUpdate
 from app.routers.assets import get_org_id, get_user_id, require_admin
-from datetime import timedelta
+from app.core.billing import get_org_plan, PlanLimits
 
 router = APIRouter()
 
 @router.post("", response_model=IncidentResponse)
 def report_incident(
     incident: IncidentCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     org_id: str = Depends(get_org_id),
     user_id: str = Depends(get_user_id)
@@ -38,6 +40,7 @@ def report_incident(
     
     # 3. Trigger Maintenance status if High/Critical
     if incident.severity in ["High", "Critical"] and asset.status != "Maintenance":
+        previous_asset_status = asset.status
         asset.status = "Maintenance"
         # Log automated status change
         db.add(ActivityLog(
@@ -47,7 +50,7 @@ def report_incident(
             actor_id="system",
             event_type="updated",
             details={
-                "previous_status": "Available", # Simplified assumption
+                "previous_status": previous_asset_status,
                 "new_status": "Maintenance",
                 "reason": f"Incident #{db_incident.id} reported with {incident.severity} severity"
             }
@@ -70,8 +73,10 @@ def report_incident(
     
     db.commit()
     db.refresh(db_incident)
-    return db_incident
-
+    background_tasks.add_task(
+        send_incident_notification,
+        org_id, asset.name, user_id, db_incident.severity, db_incident.title,
+    )
     return db_incident
 
 def process_incident_lifecycle(db: Session, org_id: str):
@@ -135,8 +140,6 @@ def process_incident_lifecycle(db: Session, org_id: str):
 
     if resolved_to_close or closed_to_archive:
         db.commit()
-
-from app.core.billing import get_org_plan, PlanLimits
 
 @router.get("", response_model=List[IncidentResponse])
 async def get_incidents(

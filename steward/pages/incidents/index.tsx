@@ -91,7 +91,7 @@ export default function IncidentsPage() {
         switch (status) {
             case "Open": return <AlertTriangle className="w-4 h-4 text-red-500" />;
             case "In Progress": return <Clock className="w-4 h-4 text-blue-500" />;
-            case "Resolved": return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+            case "Resolved": return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
             case "Closed": return <XCircle className="w-4 h-4 text-gray-400" />;
             default: return null;
         }
@@ -111,7 +111,7 @@ export default function IncidentsPage() {
                 {/* Header */}
                 <div className="px-4 md:px-0 mb-6 md:mb-8 flex flex-col gap-4">
                     <div className="flex flex-col">
-                        <h1 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)", color: "var(--ink)" }}>
                             <AlertTriangle className="w-6 h-6 md:w-7 md:h-7 text-red-600" />
                             Incident Tracking
                         </h1>

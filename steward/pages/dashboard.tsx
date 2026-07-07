@@ -1,35 +1,35 @@
-import { SignedIn, SignedOut, SignInButton, useAuth, useUser } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, Protect, useAuth, useOrganization } from "@clerk/nextjs";
+import { useMemo } from "react";
 import { useRouter } from "next/router";
 import useSWR from "swr";
 import { Layout } from "@/components/Layout";
 import { StatCard } from "@/components/StatCard";
-import {
-    CheckCircle,
-    AlertOctagon,
-    AlertTriangle,
-    Package,
-    Wrench,
-    Search,
-    ArrowRight,
-    TrendingUp,
-    DollarSign
-} from "lucide-react";
-import {
-    PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
-    LineChart, Line, XAxis, YAxis, CartesianGrid,
-    BarChart, Bar
-} from "recharts";
-import { getDashboardSummary } from "@/lib/api";
-import { DashboardData } from "@/types/dashboard";
-import { useState, useEffect } from "react";
-
-const COLORS = ['#10B981', '#F59E0B', '#EF4444']; // Good, Needs Attention, Out of Service
+// import { AiAssistant } from "@/components/AiAssistant"; // AI — coming soon
+import { ClipboardList, CheckCircle, AlertOctagon } from "lucide-react";
 
 export default function Dashboard() {
     const { getToken, isLoaded, userId } = useAuth();
     const { user } = useUser();
     const router = useRouter();
-    const [mounted, setMounted] = useState(false);
+    const { memberships } = useOrganization({
+        memberships: {
+            pageSize: 50,
+            keepPreviousData: true,
+        },
+    });
+
+
+    // Fetch activity logs
+    const { data: activityLogs } = useSWR(
+        isLoaded && userId ? ["/api/activity", userId] : null,
+        async ([url]) => {
+            const token = await getToken();
+            const res = await fetch(url, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            return res.json();
+        }
+    );
 
     useEffect(() => {
         setMounted(true);
@@ -43,7 +43,75 @@ export default function Dashboard() {
         }
     );
 
-    if (!isLoaded || !mounted) return <Layout><div>Loading...</div></Layout>;
+    // Fetch assets (for stats)
+    const { data: assets } = useSWR(
+        isLoaded && userId ? ["/api/assets", userId] : null,
+        async ([url]) => {
+            const token = await getToken();
+            const res = await fetch(url, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            return res.json();
+        }
+    );
+
+    // Calculate stats
+    const checkedOutCount = Array.isArray(assets) ? assets.filter((a: any) => a.status === "Checked Out").length : 0;
+    const availableCount = Array.isArray(assets) ? assets.filter((a: any) => a.status === "Available").length : 0;
+    const needsAttentionCount = Array.isArray(assets) ? assets.filter((a: any) =>
+        a.status === "Maintenance" || a.status === "Retired"
+    ).length : 0;
+
+    // Memoized user map for O(1) lookups
+    const userMap = useMemo(() => {
+        const map: Record<string, string> = {};
+        if (memberships?.data) {
+            memberships.data.forEach((m: any) => {
+                const uid = m.publicUserData?.userId;
+                if (uid) {
+                    const firstName = m.publicUserData?.firstName || "";
+                    const lastName = m.publicUserData?.lastName || "";
+                    map[uid] = `${firstName} ${lastName}`.trim() || uid;
+                }
+            });
+        }
+        return map;
+    }, [memberships?.data]);
+
+    // Helper to format activity event types and colors
+    const getActivityDetails = (log: any) => {
+        const d = log.details || {};
+        switch (log.event_type) {
+            case 'created':
+                return { label: 'New Asset', color: 'bg-emerald-50 text-emerald-700', msg: 'Added to inventory' };
+            case 'updated':
+                if (d.new_status) {
+                    return { label: d.new_status, color: 'bg-blue-50 text-blue-700', msg: `Status changed to ${d.new_status}` };
+                }
+                return { label: 'Updated', color: 'bg-blue-50 text-blue-700', msg: 'Asset details modified' };
+            case 'checked_out':
+                return { label: 'Checked Out', color: 'bg-red-50 text-red-700', msg: 'Assigned to teammate' };
+            case 'checked_in':
+                return { label: 'Returned', color: 'bg-emerald-50 text-emerald-700', msg: 'Returned to stock' };
+            case 'deleted':
+                return { label: 'Deleted', color: 'bg-gray-100 text-gray-700', msg: 'Removed from system' };
+            case 'incident_reported':
+                return { label: 'Issue', color: 'bg-orange-50 text-orange-700', msg: d.title || 'New incident reported' };
+            case 'incident_updated':
+                if (d.action === 'archived') return { label: 'Archived', color: 'bg-gray-100 text-gray-700', msg: 'Incident archived' };
+                if (d.new_status) return { label: d.new_status, color: 'bg-orange-50 text-orange-700', msg: `Issue marked as ${d.new_status}` };
+                return { label: 'Issue Updated', color: 'bg-orange-50 text-orange-700', msg: 'Incident updated' };
+            default:
+                const cleanLabel = log.event_type.replace(/_/g, ' ').replace(/\b\w/g, (l: any) => l.toUpperCase());
+                return { label: cleanLabel, color: 'bg-gray-50 text-gray-700', msg: 'Activity recorded' };
+        }
+    };
+
+    const getUserName = (actorUserId: string | null) => {
+        if (!actorUserId) return null;
+        return userMap[actorUserId] || null;
+    };
+
 
     // Prepare chart data
     const healthData = dashboardData ? [
@@ -56,24 +124,9 @@ export default function Dashboard() {
         <Layout>
             <div className="space-y-8 max-w-7xl mx-auto pb-10">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-                        <p className="text-slate-500 mt-1">Overview of your inventory status and value.</p>
-                    </div>
-                    {dashboardData?.valueAtRisk && (
-                        <div className="bg-white px-4 py-2 border rounded-xl shadow-sm flex items-center gap-3">
-                            <div className="p-2 bg-emerald-50 rounded-lg">
-                                <DollarSign className="w-5 h-5 text-emerald-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Value at Risk</p>
-                                <p className="text-lg font-bold text-slate-900">
-                                    ${dashboardData.valueAtRisk.totalValue.toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-                    )}
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)", color: "var(--ink)" }}>Dashboard</h1>
+                    <p className="text-gray-500 mt-2">Overview of your inventory status.</p>
                 </div>
 
                 <SignedOut>
@@ -271,30 +324,17 @@ export default function Dashboard() {
                                         </div>
                                     </div>
 
-                                    {/* Most Checked Out */}
-                                    <div className="bg-white border rounded-2xl p-6 shadow-sm">
-                                        <h3 className="font-bold text-slate-900 mb-4">Most Popular Gear</h3>
-                                        <div className="space-y-4">
-                                            {dashboardData.topAssets.map((asset, i) => (
-                                                <div key={i}>
-                                                    <div className="flex justify-between text-sm mb-1">
-                                                        <span className="font-medium text-slate-700 truncate max-w-[180px]">{asset.name}</span>
-                                                        <span className="font-bold text-emerald-600">{asset.checkoutCount} checkouts</span>
-                                                    </div>
-                                                    <div className="w-full bg-slate-100 rounded-full h-1.5">
-                                                        <div
-                                                            className="bg-emerald-500 h-1.5 rounded-full"
-                                                            style={{ width: `${(asset.checkoutCount / Math.max(...dashboardData.topAssets.map(a => a.checkoutCount))) * 100}%` }}
-                                                        ></div>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                    {planInfo?.plan === 'pro' ? (
+                                        <div className="h-20 flex items-center justify-center">
+                                            <p className="text-xs text-gray-400 italic">Trend analytics coming soon</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </>
-                    )}
+                        </Protect>
+                    </div>
+                    {/* AI Assistant — coming soon */}
+                    {/* <AiAssistant /> */}
                 </SignedIn>
             </div>
         </Layout>

@@ -1,0 +1,259 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Steward — Demo · Assign Gear</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>html,body{margin:0;padding:0;height:100%;background:#0a0a0a;overflow:hidden}body{font-family:Inter,system-ui,sans-serif}#root{position:absolute;inset:0}</style>
+</head>
+<body>
+<div id="root" data-video-root data-screen-label="t=0s"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="animations.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+<script type="text/babel" src="steward-ui.jsx"></script>
+
+<script type="text/babel">
+const B = StewardBrand;
+const SHELL_X = 120, SHELL_Y = 80;
+
+function Cold() {
+  return (
+    <Sprite start={0} end={3}>
+      {({ localTime, duration }) => {
+        const t = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        const out = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - out) * t;
+        return (
+          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center', opacity:op, gap:30}}>
+            <div style={{fontFamily:B.mono, fontSize:14, color:B.g400, letterSpacing:'0.26em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:14}}>
+              <span style={{width:36, height:1.5, background:B.g400}}/>Demo · 03<span style={{width:36, height:1.5, background:B.g400}}/>
+            </div>
+            <div style={{fontFamily:B.display, fontWeight:600, fontSize:140, color:'#fff', letterSpacing:'-0.045em', lineHeight:0.95}}>Assign Gear</div>
+            <div style={{fontFamily:B.display, fontWeight:400, fontSize:28, color:B.n300}}>Track who has what · in two clicks.</div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+const ALL_ASSETS = [
+  { name:'Sony FX3 Cinema Camera',     qr:'QR-CAM-FX3' },
+  { name:'Sennheiser G4 Wireless Mic A', qr:'QR-MIC-G4-1' },
+  { name:'Apple MacBook Pro 16" M3',    qr:'QR-MAC-16M3' },
+  { name:'RED V-Raptor 8K',              qr:'QR-CAM-RED' },
+  { name:'DJI Inspire 3 Drone Package',  qr:'QR-1780444722597-z6ivqzsd6' },
+  { name:'Shure QLX-D Wireless Mic #4',  qr:'QR-1780444784076-jzqocwp6l' },
+  { name:'DeWalt 60V MAX Jackhammer',    qr:'QR-TOOL-DEW' },
+];
+
+/* Cursor coords for shell at (120,80). New Assignment button ≈ (1720, 200). Modal centered ~(960, 540). */
+const cursor = [
+  { t: 4.0,  x: 1720, y: 200, click: true },     // + New Assignment
+  { t: 7.0,  x: 960, y: 360 },                   // hover search
+  { t: 7.5,  x: 960, y: 360, click: true },
+  { t: 11.0, x: 1080, y: 530, click: true },     // click Sony FX3 row
+  { t: 13.5, x: 960, y: 670 },                   // person field
+  { t: 15.0, x: 1330, y: 870, click: true },     // confirm
+];
+
+function Walk() {
+  return (
+    <Sprite start={3} end={23}>
+      {({ localTime, duration }) => {
+        const ent = Easing.easeOutCubic(clamp(localTime/0.8, 0, 1));
+        const shellOp = ent, shellY = (1-ent)*40;
+
+        // Modal open at 1.5s in
+        const modalT = clamp((localTime - 1.5)/0.5, 0, 1);
+        const modalOp = Easing.easeOutCubic(modalT);
+
+        // Typing search "sony" at 3.5s
+        const typed = 'Sony'.slice(0, Math.floor(clamp((localTime - 3.7)/1.0, 0, 1) * 4));
+        const isTyping = localTime >= 3.7 && localTime < 4.7;
+        const showCursor = isTyping;
+
+        // Filtered list — once "Sony" is typed (≥4 chars), show only Sony FX3
+        const filtered = typed.length >= 1 ? ALL_ASSETS.filter(a => a.name.toLowerCase().includes(typed.toLowerCase())) : ALL_ASSETS;
+        const filterT = clamp((localTime - 4.7)/0.4, 0, 1);
+
+        // Cursor highlights Sony FX3 row (8 to 8.5), then click closes modal
+        const highlightFX3 = localTime >= 7.5 && localTime < 8.2;
+        const sonyPicked = localTime >= 8.1;
+
+        // Stage 2: After picking asset, modal swaps to assignment form
+        const stage2T = clamp((localTime - 8.5)/0.5, 0, 1);
+        const stage2 = Easing.easeOutCubic(stage2T);
+
+        // person field appears, then dropdown
+        const personT = Easing.easeOutCubic(clamp((localTime - 9.5)/0.5, 0, 1));
+        const dueT    = Easing.easeOutCubic(clamp((localTime - 10.5)/0.5, 0, 1));
+        const eventT  = Easing.easeOutCubic(clamp((localTime - 11.5)/0.5, 0, 1));
+
+        // Confirm + success at 12s
+        const successT = clamp((localTime - 12.5)/0.5, 0, 1);
+
+        // Modal closes at 13.5s
+        const closeT = clamp((localTime - 14.5)/0.5, 0, 1);
+        const modalOut = 1 - closeT;
+
+        // Assignment row slides in
+        const newRowT = Easing.easeOutCubic(clamp((localTime - 15.5)/0.5, 0, 1));
+
+        const captions = [
+          { from: 0.6, to: 4.5,  text: 'Click + New Assignment' },
+          { from: 4.5, to: 8.5,  text: 'Search · only Available gear shows up' },
+          { from: 8.5, to: 12.0, text: 'Pick the person · set the return date' },
+          { from: 12.0, to: 15.5, text: '✓ Logged · audit trail updated automatically' },
+          { from: 15.5, to: 19.0, text: "Maya now has the FX3 \u00b7 you'll know the minute it's back" },
+        ];
+        const cap = captions.find(c => localTime >= c.from && localTime < c.to);
+        const capT = cap ? Easing.easeOutCubic(clamp((localTime - cap.from)/0.3, 0, 1)) * Easing.easeOutCubic(clamp((cap.to - localTime)/0.3, 0, 1)) : 0;
+
+        return (
+          <div style={{position:'absolute', inset:0}}>
+            <div style={{position:'absolute', left:SHELL_X, top:SHELL_Y, width:1680, height:920, opacity:shellOp, transform:`translateY(${shellY}px)`}}>
+              <AppShell active="assignments">
+                <PageHeader title="Assignments" sub="Track who has what, and when it's due back."
+                  action={<PrimaryButton highlight={localTime > 0.9 && localTime < 1.6}>New Assignment</PrimaryButton>}
+                />
+                <div style={{display:'flex', gap:14, marginBottom:24}}>
+                  <SearchBar placeholder="Search assignments..."/>
+                  <FilterDropdown value="All Status"/>
+                </div>
+                {/* Active assignments list */}
+                <div style={{background:'#fff', borderRadius:14, border:'1px solid '+B.n100, padding:'4px 20px'}}>
+                  {newRowT > 0 && (
+                    <div style={{background:B.g50+'88', borderRadius:10, padding:'14px 16px', display:'flex', alignItems:'center', gap:16, marginTop:6,
+                      opacity:newRowT, transform:`translateY(${(1-newRowT)*12}px)`}}>
+                      <div style={{width:38, height:38, borderRadius:'50%', background:B.g600, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:B.display, fontWeight:600, fontSize:15}}>M</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:B.display, fontWeight:600, fontSize:17, color:B.ink, letterSpacing:'-0.01em'}}>Maya Chen · Sony FX3 Cinema Camera</div>
+                        <div style={{fontFamily:B.mono, fontSize:11.5, color:B.n400, letterSpacing:'0.08em', marginTop:3, textTransform:'uppercase'}}>QR-CAM-FX3 · Due Friday · Podcast S04 · Studio B</div>
+                      </div>
+                      <span style={{fontFamily:B.mono, fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', background:'#E5EEFF', color:B.blue, padding:'5px 12px', borderRadius:999, fontWeight:600}}>Checked Out</span>
+                    </div>
+                  )}
+                  <div style={{padding:'14px 16px', display:'flex', alignItems:'center', gap:16, borderTop: newRowT > 0 ? '1px solid '+B.n100 : 'none', marginTop:6}}>
+                    <div style={{width:38, height:38, borderRadius:'50%', background:B.amber, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:B.display, fontWeight:600, fontSize:15}}>J</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:B.display, fontWeight:600, fontSize:17, color:B.ink, letterSpacing:'-0.01em'}}>Jake Rivera · Sennheiser G4 Wireless Mic B</div>
+                      <div style={{fontFamily:B.mono, fontSize:11.5, color:B.n400, letterSpacing:'0.08em', marginTop:3, textTransform:'uppercase'}}>QR-MIC-G4-2 · Due tomorrow</div>
+                    </div>
+                    <span style={{fontFamily:B.mono, fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', background:'#FFF3DC', color:B.amber, padding:'5px 12px', borderRadius:999, fontWeight:600}}>Due Soon</span>
+                  </div>
+                </div>
+              </AppShell>
+            </div>
+
+            {/* Modal */}
+            {modalOp > 0 && modalOut > 0 && (
+              <div style={{position:'absolute', left:SHELL_X, top:SHELL_Y, width:1680, height:920, opacity:modalOp*modalOut}}>
+                {/* Stage 1: Select Asset */}
+                {stage2 < 0.5 && (
+                  <Modal title="Select Asset to Assign" t={modalOp*modalOut} width={720}>
+                    <div style={{marginBottom:18}}>
+                      <SearchBar placeholder="Search available assets..." value={typed} cursor={showCursor}/>
+                    </div>
+                    <div style={{maxHeight:480, overflow:'hidden', opacity: 1 - stage2*2}}>
+                      {filtered.map((a, i) => (
+                        <div key={a.qr} style={{
+                          opacity: typed && i === 0 ? 1 : (typed ? clamp(filterT, 0, 1) : 1),
+                          transform: `translateY(${typed && i > 0 ? (1-filterT)*-20 : 0}px)`,
+                        }}>
+                          <ModalAssetRow name={a.name} qr={a.qr} highlight={highlightFX3 && a.name.startsWith('Sony FX3')}/>
+                        </div>
+                      ))}
+                    </div>
+                  </Modal>
+                )}
+                {/* Stage 2: Assignment form */}
+                {stage2 > 0.4 && (
+                  <Modal title="Assign Sony FX3 Cinema Camera" t={stage2*modalOut} width={720}>
+                    {/* Asset preview row */}
+                    <div style={{background:B.g50, border:'1px solid '+B.g100, borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', gap:12, marginBottom:24}}>
+                      <div style={{width:36, height:36, borderRadius:9, background:'#fff', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={B.g700} strokeWidth="2" strokeLinejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:B.display, fontWeight:600, fontSize:16, color:B.ink, letterSpacing:'-0.01em'}}>Sony FX3 Cinema Camera</div>
+                        <div style={{fontFamily:B.mono, fontSize:11, color:B.g700, marginTop:2, letterSpacing:'0.08em'}}>QR-CAM-FX3 · AVAILABLE</div>
+                      </div>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={B.g600} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12 L10 17 L19 8"/></svg>
+                    </div>
+                    {/* Assign to */}
+                    <div style={{opacity:personT, transform:`translateY(${(1-personT)*8}px)`, marginBottom:14}}>
+                      <div style={{fontFamily:B.mono, fontSize:11, color:B.n400, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:7, fontWeight:600}}>Assign To</div>
+                      <div style={{background:B.n50, border:'1.5px solid '+B.n100, borderRadius:10, padding:'13px 16px', display:'flex', alignItems:'center', gap:10}}>
+                        <div style={{width:28, height:28, borderRadius:'50%', background:B.g600, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:B.display, fontWeight:600, fontSize:12}}>M</div>
+                        <span style={{fontFamily:B.body, fontSize:15, color:B.ink, fontWeight:500}}>Maya Chen</span>
+                        <span style={{fontFamily:B.mono, fontSize:11.5, color:B.n400, marginLeft:'auto', letterSpacing:'0.04em'}}>maya@studio.co</span>
+                      </div>
+                    </div>
+                    {/* Due */}
+                    <div style={{opacity:dueT, transform:`translateY(${(1-dueT)*8}px)`, marginBottom:14}}>
+                      <div style={{fontFamily:B.mono, fontSize:11, color:B.n400, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:7, fontWeight:600}}>Expected Return</div>
+                      <div style={{background:B.n50, border:'1.5px solid '+B.n100, borderRadius:10, padding:'13px 16px', display:'flex', alignItems:'center', gap:10}}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={B.n500} strokeWidth="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                        <span style={{fontFamily:B.body, fontSize:15, color:B.ink, fontWeight:500}}>Friday · Jun 5, 5:00 PM</span>
+                      </div>
+                    </div>
+                    {/* Event */}
+                    <div style={{opacity:eventT, transform:`translateY(${(1-eventT)*8}px)`, marginBottom:24}}>
+                      <div style={{fontFamily:B.mono, fontSize:11, color:B.n400, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:7, fontWeight:600}}>Event · Project</div>
+                      <div style={{display:'flex', gap:8}}>
+                        <span style={{background:B.g50, color:B.g700, fontFamily:B.body, fontSize:14, fontWeight:500, padding:'7px 14px', borderRadius:8}}>Podcast S04</span>
+                        <span style={{background:B.g50, color:B.g700, fontFamily:B.body, fontSize:14, fontWeight:500, padding:'7px 14px', borderRadius:8}}>Studio B</span>
+                      </div>
+                    </div>
+                    <div style={{marginTop:8, display:'flex', justifyContent:'flex-end', gap:12}}>
+                      <div style={{fontFamily:B.body, fontSize:15, fontWeight:600, color:B.n500, padding:'12px 22px'}}>Cancel</div>
+                      <div style={{
+                        background: successT > 0.4 ? B.g500 : B.ink, color:'#fff', fontFamily:B.body, fontSize:15, fontWeight:600,
+                        padding:'12px 22px', borderRadius:12, display:'inline-flex', alignItems:'center', gap:10,
+                        boxShadow: localTime > 11.7 && localTime < 12.6 ? `0 0 0 4px ${B.g400}55` : 'none',
+                        transition:'all 0.25s',
+                      }}>{successT > 0.4 ? '✓ Assigned' : 'Confirm Assignment'}</div>
+                    </div>
+                  </Modal>
+                )}
+              </div>
+            )}
+
+            {cap && (
+              <div style={{position:'absolute', bottom:40, left:0, right:0, display:'flex', justifyContent:'center', opacity:capT, transform:`translateY(${(1-capT)*12}px)`}}>
+                <div style={{background:'rgba(6,20,14,0.85)', backdropFilter:'blur(20px)', border:'1px solid rgba(52,211,153,0.25)', borderRadius:999, padding:'12px 24px', display:'flex', alignItems:'center', gap:14}}>
+                  <div style={{width:8, height:8, borderRadius:'50%', background:B.g400, boxShadow:`0 0 12px ${B.g500}`}}/>
+                  <span style={{fontFamily:B.display, fontWeight:500, fontSize:20, color:'#fff', letterSpacing:'-0.01em'}}>{cap.text}</span>
+                </div>
+              </div>
+            )}
+            <Cursor script={cursor}/>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+function End() { return <Sprite start={23} end={27}><EndCard tagline="Total accountability, every checkout." url="steward.app"/></Sprite>; }
+
+function Demo() {
+  return (
+    <Stage width={1920} height={1080} duration={27} background={B.ink} persistKey="demo-03">
+      <TimestampLabel/>
+      <PromoBackdrop/>
+      <CornerWatermark start={3.5} end={23}/>
+      <Cold/><Walk/><End/>
+    </Stage>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

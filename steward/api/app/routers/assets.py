@@ -1,10 +1,12 @@
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends, HTTPException, status
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from fastapi_clerk_auth import HTTPAuthorizationCredentials
+
 
 from app.core.debs import get_db
-from app.core.security import clerk_guard
+from app.core.security import clerk_guard, ClerkCredentials
 from app.models.asset import Asset
 from app.models.activity import ActivityLog
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse
@@ -12,7 +14,7 @@ from app.core.billing import check_limit
 
 router = APIRouter()
 
-def get_org_id(creds: HTTPAuthorizationCredentials = Depends(clerk_guard)) -> str:
+def get_org_id(creds: ClerkCredentials = Depends(clerk_guard)) -> str:
     claims = creds.decoded
     
     # Handle standard and minified Clerk claims
@@ -29,7 +31,7 @@ def get_org_id(creds: HTTPAuthorizationCredentials = Depends(clerk_guard)) -> st
     
     return org_id
 
-def get_user_id(creds: HTTPAuthorizationCredentials = Depends(clerk_guard)) -> str:
+def get_user_id(creds: ClerkCredentials = Depends(clerk_guard)) -> str:
     claims = creds.decoded
     user_id = claims.get("sub")
     
@@ -38,13 +40,18 @@ def get_user_id(creds: HTTPAuthorizationCredentials = Depends(clerk_guard)) -> s
     
     return user_id
 
-def require_admin(creds: HTTPAuthorizationCredentials = Depends(clerk_guard)):
-    claims = creds.decoded
-    
-    # Check org role
-    role = claims.get("org_role") or (claims.get("o") or {}).get("r")
-    
-    if role != "org:admin":
+def claims_is_admin(claims: dict) -> bool:
+    """Return True if the decoded Clerk JWT claims represent an org admin.
+
+    Clerk's raw token stores "admin"; the SDK normalizes to "org:admin" on the
+    frontend. Minified tokens nest the role under "o" as "rol"/"role"/"r".
+    """
+    org_data = claims.get("o") or claims.get("org") or {}
+    role = claims.get("org_role") or org_data.get("rol") or org_data.get("role") or org_data.get("r")
+    return role in ("admin", "org:admin")
+
+def require_admin(creds: ClerkCredentials = Depends(clerk_guard)):
+    if not claims_is_admin(creds.decoded):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required for this action"
@@ -79,6 +86,11 @@ async def create_asset(
     # Enforce asset limit for organization
     asset_count = db.query(Asset).filter(Asset.org_id == org_id).count()
     await check_limit(org_id, asset_count, "max_assets")
+    
+    if asset.qr_code:
+        existing = db.query(Asset).filter(Asset.org_id == org_id, Asset.qr_code == asset.qr_code).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="This identifier (QR code) is already in use by another asset.")
     
     db_asset = Asset(**asset.model_dump(), org_id=org_id, created_by=user_id)
     db.add(db_asset)
@@ -122,6 +134,11 @@ def update_asset(
     db_asset = db.query(Asset).filter(Asset.id == asset_id, Asset.org_id == org_id).first()
     if not db_asset:
         raise HTTPException(status_code=404, detail="Asset not found")
+        
+    if asset_update.qr_code and asset_update.qr_code != db_asset.qr_code:
+        existing = db.query(Asset).filter(Asset.org_id == org_id, Asset.qr_code == asset_update.qr_code).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="This identifier (QR code) is already in use by another asset.")
     
     previous_status = db_asset.status
     update_data = asset_update.model_dump(exclude_unset=True)

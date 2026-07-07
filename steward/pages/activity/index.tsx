@@ -62,7 +62,7 @@ export default function ActivityPage() {
             case 'created':
                 return {
                     label: 'Added Asset',
-                    color: 'bg-green-50 text-green-700',
+                    color: 'bg-emerald-50 text-emerald-700',
                     icon: PlusCircle,
                     description: (name: string) => `added "${name}" to inventory`
                 };
@@ -86,7 +86,7 @@ export default function ActivityPage() {
             case 'checked_in':
                 return {
                     label: 'Returned',
-                    color: 'bg-green-50 text-green-700',
+                    color: 'bg-emerald-50 text-emerald-700',
                     icon: RotateCcw,
                     description: (name: string) => `checked in "${name}"`
                 };
@@ -217,7 +217,7 @@ export default function ActivityPage() {
                 {/* Header */}
                 <div className="px-4 md:px-0 mb-6 md:mb-8 flex flex-col gap-4">
                     <div className="flex flex-col">
-                        <h1 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)", color: "var(--ink)" }}>
                             <History className="w-6 h-6 md:w-7 md:h-7 text-gray-600" />
                             Activity Log
                         </h1>
@@ -231,7 +231,7 @@ export default function ActivityPage() {
                             placeholder="Search asset or user..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none shadow-sm"
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm"
                         />
                     </div>
                 </div>
@@ -241,7 +241,7 @@ export default function ActivityPage() {
                     <div className="divide-y divide-gray-100">
                         {!activityLogs && !error ? (
                             <div className="p-12 text-center flex flex-col items-center gap-3">
-                                <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+                                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
                                 <span className="text-sm text-gray-500">Loading audit logs...</span>
                             </div>
                         ) : filteredLogs.length === 0 ? (
@@ -289,7 +289,7 @@ export default function ActivityPage() {
                             >
                                 {isValidating ? (
                                     <>
-                                        <Loader2 className="w-4 h-4 animate-spin text-green-600" />
+                                        <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
                                         <span>Loading more...</span>
                                     </>
                                 ) : (

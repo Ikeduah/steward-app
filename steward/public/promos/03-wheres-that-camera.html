@@ -1,0 +1,382 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Steward — Where's That Camera?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0a; overflow: hidden; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  #root { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="root" data-video-root data-screen-label="t=0s"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="animations.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+
+<script type="text/babel">
+const B = StewardBrand;
+
+/* ============ SCENE A · THE QUESTION (0 → 4) ============ */
+/* Camera-shake, a frantic search-energy moment with The Question typed on screen */
+function SceneA() {
+  return (
+    <Sprite start={0} end={4}>
+      {({ localTime, duration }) => {
+        const outT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - outT);
+
+        // typewriter
+        const text = "Where's the Sony FX3?";
+        const charsT = clamp(localTime/1.6, 0, 1);
+        const shown = text.slice(0, Math.floor(charsT * text.length));
+        const cursor = Math.floor(localTime * 2.5) % 2 === 0;
+
+        // subtitle delay
+        const subT = clamp((localTime - 2.0)/0.7, 0, 1);
+
+        // subtle "panic" tilt that resolves
+        const shake = Math.sin(localTime * 7) * (1 - clamp(localTime/2.5,0,1)) * 4;
+
+        return (
+          <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center', opacity:op, gap:30, transform:`rotate(${shake * 0.2}deg) translateX(${shake}px)`}}>
+            <Eyebrow color={B.amber} size={18}>14:22 · Studio B · Shoot starts in 38 minutes</Eyebrow>
+            <div style={{
+              fontFamily:B.display, fontWeight:600, fontSize:128, color:'#fff', letterSpacing:'-0.045em',
+              lineHeight:1, textAlign:'center', minHeight:160,
+            }}>
+              {shown}
+              <span style={{opacity: cursor ? 1 : 0, color:B.amber, marginLeft:6}}>|</span>
+            </div>
+            <div style={{
+              opacity:subT, transform:`translateY(${(1-subT)*16}px)`,
+              fontFamily:B.display, fontWeight:400, fontSize:32, color:B.n400,
+              maxWidth:900, textAlign:'center', lineHeight:1.3,
+            }}>
+              The most expensive 30 minutes in production.
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE B · WITHOUT STEWARD (4 → 9) ============ */
+function PhoneMessage({ from, color, msg, t, x, y, side = 'left' }) {
+  if (t <= 0) return null;
+  const e = Easing.easeOutCubic(t);
+  return (
+    <div style={{
+      position:'absolute', left:x, top:y,
+      opacity:e, transform:`translateY(${(1-e)*16}px)`,
+      maxWidth: 380, display:'flex', flexDirection: side === 'right' ? 'row-reverse' : 'row', gap:10, alignItems:'flex-end',
+    }}>
+      <div style={{width:32, height:32, borderRadius:'50%', background:color, color:'#fff',
+        display:'flex', alignItems:'center', justifyContent:'center', fontFamily:B.display, fontWeight:600, fontSize:14, flexShrink:0}}>{from.charAt(0)}</div>
+      <div style={{
+        background: side === 'right' ? B.g500 : '#fff',
+        color: side === 'right' ? '#fff' : B.ink,
+        fontFamily:B.body, fontSize:15, padding:'10px 14px',
+        borderRadius:16, borderBottomLeftRadius: side === 'left' ? 4 : 16, borderBottomRightRadius: side === 'right' ? 4 : 16,
+        boxShadow:'0 8px 20px -12px rgba(0,0,0,0.5)',
+        maxWidth: 320,
+      }}>{msg}</div>
+    </div>
+  );
+}
+
+function SceneB() {
+  return (
+    <Sprite start={4} end={9.5}>
+      {({ localTime, duration }) => {
+        const outT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - outT);
+        const titleT = Easing.easeOutCubic(clamp(localTime/0.5, 0, 1));
+
+        // Stream of frantic messages
+        const messages = [
+          { from:'Jordan', color:B.amber, msg:'Anyone seen the FX3?',                 t: 0.4, x: 180, y: 220, side:'left' },
+          { from:'Maya',   color:B.blue,  msg:"Wasn't it in cage 4?",                  t: 0.9, x: 980, y: 280, side:'right' },
+          { from:'Sam',    color:B.g700,  msg:'I think Devon had it Tuesday?',          t: 1.4, x: 220, y: 360, side:'left' },
+          { from:'Devon',  color:B.red,   msg:"I gave it to Priya for the offsite.",   t: 1.9, x: 940, y: 420, side:'right' },
+          { from:'Priya',  color:B.g600,  msg:"Returned it Wed morning. Pretty sure.", t: 2.4, x: 200, y: 500, side:'left' },
+          { from:'Jordan', color:B.amber, msg:"It's not in the cage.",                 t: 2.9, x: 960, y: 560, side:'right' },
+          { from:'Maya',   color:B.blue,  msg:"Should we just rent another one??",     t: 3.4, x: 240, y: 640, side:'left' },
+        ];
+
+        return (
+          <div style={{position:'absolute',inset:0, opacity:op}}>
+            <div style={{
+              position:'absolute', top:80, left:0, right:0, textAlign:'center',
+              opacity:titleT, transform:`translateY(${(1-titleT)*16}px)`,
+            }}>
+              <div style={{fontFamily:B.mono, fontSize:14, color:B.red, letterSpacing:'0.22em', textTransform:'uppercase', marginBottom:14}}>Without Steward</div>
+              <div style={{fontFamily:B.display, fontWeight:600, fontSize:70, color:'#fff', letterSpacing:'-0.03em', lineHeight:1}}>
+                Eight texts. Three rumors. <span style={{color:B.amber}}>No answer.</span>
+              </div>
+            </div>
+            {messages.map((m, i) => {
+              const t = clamp((localTime - m.t)/0.5, 0, 1);
+              return <PhoneMessage key={i} {...m} t={t}/>;
+            })}
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE C · WITH STEWARD (9.5 → 18) ============ */
+/* The query → the answer. Open Steward, search ASSET-02103, get a clean chain of custody timeline */
+function StewardSearchBar() {
+  const { localTime } = useSprite();
+  const query = 'ASSET-02103';
+  const typed = query.slice(0, Math.floor(clamp(localTime/0.9, 0, 1) * query.length));
+  const cursor = Math.floor(localTime * 3) % 2 === 0;
+  return (
+    <div style={{
+      width: 640, background:'#fff', borderRadius:16, padding:'18px 22px',
+      display:'flex', alignItems:'center', gap:14,
+      boxShadow:'0 30px 60px -30px rgba(0,0,0,0.5)',
+      border:'1px solid '+B.n200,
+    }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={B.n500} strokeWidth="2"/><path d="M20 20 L17 17" stroke={B.n500} strokeWidth="2" strokeLinecap="round"/></svg>
+      <div style={{fontFamily:B.mono, fontSize:18, color:B.ink, flex:1, letterSpacing:'0.04em'}}>
+        {typed}
+        <span style={{opacity: cursor ? 1 : 0, color:B.g500}}>|</span>
+      </div>
+      <div style={{fontFamily:B.mono, fontSize:11, color:B.n400, letterSpacing:'0.1em', textTransform:'uppercase'}}>Steward</div>
+    </div>
+  );
+}
+
+function CustodyTimeline({ progress }) {
+  // 0..1 — how many events have animated in
+  const events = [
+    { t: '14:22 · TODAY',     who:'You',          action:'Searched',                color: B.n500, isUser: true },
+    { t: '09:14 · Wed',       who:'Priya Patel',  action:'Returned · Cage 4 · Shelf 3', color: B.g600 },
+    { t: '17:48 · Tue',       who:'Priya Patel',  action:'Checked out · Offsite Shoot',  color: B.blue },
+    { t: '13:02 · Tue',       who:'Devon Cole',   action:'Returned · Cage 4',          color: B.g600 },
+    { t: '08:30 · Mon',       who:'Devon Cole',   action:'Checked out · Studio B',     color: B.blue },
+  ];
+  return (
+    <div style={{
+      width: 640, background:'#fff', borderRadius:18, padding:'24px 26px',
+      boxShadow:'0 30px 60px -30px rgba(0,0,0,0.5)',
+      border:'1px solid '+B.n200,
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap:12, paddingBottom:18, borderBottom:'1px solid '+B.n100, marginBottom:16}}>
+        <KeystoneTile size={36} radius={10} glow={false}/>
+        <div>
+          <div style={{fontFamily:B.display, fontWeight:600, fontSize:17, color:B.ink, letterSpacing:'-0.01em'}}>Sony FX3</div>
+          <div style={{fontFamily:B.mono, fontSize:11, color:B.g600, letterSpacing:'0.08em', marginTop:2}}>ASSET-02103 · CHAIN OF CUSTODY</div>
+        </div>
+        <div style={{
+          marginLeft:'auto', fontFamily:B.mono, fontSize:10.5, letterSpacing:'0.12em', textTransform:'uppercase',
+          background: B.g50, color: B.g700, padding:'6px 12px', borderRadius:8, fontWeight:500,
+        }}>Available · Cage 4 · Shelf 3</div>
+      </div>
+      {events.map((e, i) => {
+        const t = clamp((progress * events.length) - i, 0, 1);
+        const op = Easing.easeOutCubic(t);
+        return (
+          <div key={i} style={{
+            opacity:op, transform:`translateX(${(1-op)*30}px)`,
+            display:'flex', alignItems:'flex-start', gap:18, padding:'12px 0',
+            position:'relative',
+          }}>
+            <div style={{
+              width:14, height:14, borderRadius:'50%', background:e.color, marginTop:4,
+              boxShadow: i === 1 ? `0 0 0 4px ${B.g100}` : 'none',
+              flexShrink: 0,
+            }}/>
+            {/* connecting line */}
+            {i < events.length - 1 && (
+              <div style={{
+                position:'absolute', left:6, top:24, bottom:-8, width:2, background:B.n100,
+              }}/>
+            )}
+            <div style={{flex:1}}>
+              <div style={{fontFamily:B.mono, fontSize:10.5, color:B.n400, letterSpacing:'0.1em', textTransform:'uppercase'}}>{e.t}</div>
+              <div style={{fontFamily:B.body, fontSize:15, color:B.ink, marginTop:3}}>
+                <b style={{fontWeight:600}}>{e.who}</b> · {e.action}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SceneC() {
+  return (
+    <Sprite start={9.5} end={18.5}>
+      {({ localTime, duration }) => {
+        const outT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - outT);
+        const titleT = Easing.easeOutCubic(clamp(localTime/0.5, 0, 1));
+
+        // Search bar enters first
+        const searchOp = Easing.easeOutCubic(clamp((localTime - 0.4)/0.5, 0, 1));
+        const searchY = (1 - searchOp) * 20;
+
+        // Timeline enters after search query finishes typing (~1.5s)
+        const tlAppear = clamp((localTime - 2.0)/0.5, 0, 1);
+        const tlOp = Easing.easeOutCubic(tlAppear);
+        const tlY = (1 - tlOp) * 30;
+
+        // Events stream in over the next 3s
+        const eventsProgress = clamp((localTime - 2.7)/2.5, 0, 1);
+
+        // "Found it" reveal at end
+        const foundT = clamp((localTime - 6.0)/0.6, 0, 1);
+
+        return (
+          <div style={{position:'absolute',inset:0, opacity:op, display:'flex', alignItems:'center'}}>
+            {/* Left: title + answer reveal */}
+            <div style={{flex:1, paddingLeft:120, opacity:titleT, transform:`translateY(${(1-titleT)*16}px)`}}>
+              <div style={{fontFamily:B.mono, fontSize:14, color:B.g400, letterSpacing:'0.22em', textTransform:'uppercase', marginBottom:18}}>With Steward</div>
+              <div style={{fontFamily:B.display, fontWeight:600, fontSize:100, color:'#fff', letterSpacing:'-0.04em', lineHeight:1}}>
+                One search.
+              </div>
+              {/* "Found it." morphs in */}
+              <div style={{
+                marginTop:24, opacity:foundT, transform:`translateY(${(1-foundT)*16}px) scale(${0.95 + 0.05*foundT})`,
+              }}>
+                <div style={{fontFamily:B.display, fontWeight:600, fontSize:100, color:B.g400, letterSpacing:'-0.04em', lineHeight:1}}>
+                  Found it.
+                </div>
+                <div style={{fontFamily:B.display, fontWeight:400, fontSize:24, color:B.n300, marginTop:14, maxWidth:520, lineHeight:1.4}}>
+                  Cage 4 · Shelf 3 · Returned 09:14 Wednesday by Priya.
+                </div>
+              </div>
+            </div>
+            {/* Right: search → timeline */}
+            <div style={{flex:1, position:'relative', height:740, paddingRight:80, display:'flex', flexDirection:'column', justifyContent:'center', gap:24}}>
+              <div style={{opacity:searchOp, transform:`translateY(${searchY}px)`}}>
+                <StewardSearchBar/>
+              </div>
+              <div style={{opacity:tlOp, transform:`translateY(${tlY}px)`}}>
+                <CustodyTimeline progress={eventsProgress}/>
+              </div>
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE D · 8 SECONDS (18.5 → 22) ============ */
+function SceneD() {
+  return (
+    <Sprite start={18.5} end={22}>
+      {({ localTime, duration }) => {
+        const outT = clamp((localTime - (duration-0.5))/0.5, 0, 1);
+        const op = (1 - outT);
+        const t = Easing.easeOutCubic(clamp(localTime/0.5, 0, 1));
+
+        // Counter from 30:00 → 0:08
+        const countT = clamp((localTime - 0.6)/1.6, 0, 1);
+        const e = Easing.easeOutCubic(countT);
+        const sec = Math.round(1800 - (1800 - 8) * e);
+        const mins = Math.floor(sec / 60);
+        const secs = sec % 60;
+        const display = `${mins}:${String(secs).padStart(2, '0')}`;
+        const isDone = sec === 8;
+
+        return (
+          <div style={{position:'absolute',inset:0, opacity:op, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30}}>
+            <div style={{opacity:t, fontFamily:B.mono, fontSize:16, color:B.g400, letterSpacing:'0.22em', textTransform:'uppercase'}}>
+              Time to locate
+            </div>
+            <div style={{
+              fontFamily:B.display, fontWeight:700, fontSize:360, color: isDone ? B.g400 : '#fff',
+              letterSpacing:'-0.05em', lineHeight:0.9, fontVariantNumeric:'tabular-nums',
+              filter: isDone ? `drop-shadow(0 0 60px ${B.g500}66)` : 'none',
+              transition:'all 0.3s',
+            }}>
+              {display}
+            </div>
+            <div style={{
+              opacity:isDone ? 1 : 0, transform: isDone ? 'translateY(0)' : 'translateY(20px)',
+              transition:'all 0.4s', fontFamily:B.display, fontWeight:400, fontSize:32, color:B.n300,
+            }}>
+              Down from <span style={{color:B.n500, textDecoration:'line-through'}}>30 minutes</span>.
+            </div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ SCENE E · END CARD (22 → 25) ============ */
+function SceneE() {
+  return (
+    <Sprite start={22} end={25.5}>
+      {({ localTime }) => {
+        const t = Easing.easeOutCubic(clamp(localTime/0.6, 0, 1));
+        return (
+          <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', opacity:t, transform:`translateY(${(1-t)*16}px)`, gap:36}}>
+            <StewardLockup tileSize={120} wordSize={84}/>
+            <div style={{
+              fontFamily:B.display, fontWeight:500, fontSize:54, color:'#fff', letterSpacing:'-0.03em',
+              textAlign:'center', maxWidth:1000,
+            }}>
+              Never lose track of a single asset.
+            </div>
+            <div style={{fontFamily:B.mono, fontSize:14, color:B.g400, letterSpacing:'0.18em', textTransform:'uppercase', marginTop:6}}>steward.app</div>
+          </div>
+        );
+      }}
+    </Sprite>
+  );
+}
+
+/* ============ MAIN ============ */
+function Promo03() {
+  return (
+    <Stage width={1920} height={1080} duration={25.5} background={B.ink} persistKey="promo-03">
+      <TimestampLabel/>
+      <div style={{position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none'}}>
+        <EmeraldGlow x="-15%" y="40%" size="55%" intensity={0.16} blur={150}/>
+        <EmeraldGlow x="60%"  y="-10%" size="55%" intensity={0.14} blur={150}/>
+        <GridBg opacity={0.5} size={90}/>
+      </div>
+
+      <SceneA/>
+      <SceneB/>
+      <SceneC/>
+      <SceneD/>
+      <SceneE/>
+
+      <Sprite start={4} end={22}>
+        {({ localTime }) => {
+          const op = Easing.easeOutCubic(clamp(localTime/0.5, 0, 1)) * 0.75;
+          return (
+            <div style={{position:'absolute', top:48, left:60, opacity:op, display:'flex', alignItems:'center', gap:14}}>
+              <KeystoneTile size={40} radius={10} glow={false}/>
+              <span style={{fontFamily:B.display, fontWeight:600, fontSize:22, color:'#fff', letterSpacing:'-0.02em'}}>Steward</span>
+            </div>
+          );
+        }}
+      </Sprite>
+    </Stage>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Promo03/>);
+</script>
+</body>
+</html>

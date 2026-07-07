@@ -1,5 +1,6 @@
 import { ReactNode, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
+import { StewardMark } from "./StewardMark";
 import { useOrganization, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 
@@ -21,7 +22,7 @@ export function Layout({ children }: LayoutProps) {
     if (!isLoaded) {
         return (
             <div className="flex h-screen items-center justify-center bg-gray-50">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
             </div>
         );
     }
@@ -38,10 +39,10 @@ export function Layout({ children }: LayoutProps) {
                 {/* Mobile Header */}
                 <header className="md:hidden h-16 bg-white border-b border-gray-100 flex items-center justify-between px-6 sticky top-0 z-20">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                            <span className="text-white font-bold text-xs">S</span>
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(150deg, #34D399, #059669)" }}>
+                            <StewardMark className="w-[18px] h-[18px] text-white" />
                         </div>
-                        <span className="font-bold text-gray-900 tracking-tight">Steward</span>
+                        <span className="font-semibold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)", color: "var(--ink)" }}>Steward</span>
                     </div>
                 </header>
 

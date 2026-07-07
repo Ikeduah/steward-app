@@ -97,9 +97,13 @@ export default function AssignmentsPage() {
             if (res.ok) {
                 mutateAssignments();
                 mutateAssets();
+            } else {
+                const data = await res.json().catch(() => null);
+                alert(data?.detail || "Check-in failed. You may not be allowed to return this asset.");
             }
         } catch (error) {
             console.error("Check-in failed:", error);
+            alert("Check-in failed. Please try again.");
         } finally {
             setIsProcessing(null);
         }
@@ -157,8 +161,8 @@ export default function AssignmentsPage() {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                            <ClipboardList className="w-7 h-7 text-green-600" />
+                        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)", color: "var(--ink)" }}>
+                            <ClipboardList className="w-7 h-7 text-emerald-600" />
                             Assignments
                         </h1>
                         <p className="text-gray-500 mt-1">Manage asset check-ins and check-outs.</p>
@@ -190,14 +194,14 @@ export default function AssignmentsPage() {
                         <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg">
                             <button
                                 onClick={() => setActiveTab('active')}
-                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'active' ? "bg-white text-green-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'active' ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
                                     }`}
                             >
                                 Active
                             </button>
                             <button
                                 onClick={() => setActiveTab('history')}
-                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'history' ? "bg-white text-green-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'history' ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
                                     }`}
                             >
                                 History
@@ -211,7 +215,7 @@ export default function AssignmentsPage() {
                                 placeholder={`Search ${activeTab}...`}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-green-500"
+                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                             />
                         </div>
                     </div>
@@ -225,13 +229,13 @@ export default function AssignmentsPage() {
                                 filteredAssignments?.map((item: any) => (
                                     <div key={item.id} className="p-4 bg-white active:bg-gray-50 transition-colors">
                                         <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center text-green-600 shrink-0">
+                                            <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 shrink-0">
                                                 <Box className="w-5 h-5" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-start mb-1">
                                                     <h3 className="font-bold text-gray-900 truncate">{item.asset?.name || `Asset #${item.asset_id}`}</h3>
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-50 text-green-700 border border-green-100">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-100">
                                                         Active
                                                     </span>
                                                 </div>
@@ -248,7 +252,7 @@ export default function AssignmentsPage() {
                                                     <button
                                                         onClick={() => handleCheckIn(item.asset_id)}
                                                         disabled={isProcessing === item.asset_id}
-                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-xl text-sm font-bold border border-green-100 active:scale-95 transition-all disabled:opacity-50"
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-100 active:scale-95 transition-all disabled:opacity-50"
                                                     >
                                                         {isProcessing === item.asset_id ? (
                                                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -329,12 +333,12 @@ export default function AssignmentsPage() {
                                             <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center text-green-600">
+                                                        <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
                                                             <Box className="w-5 h-5" />
                                                         </div>
                                                         <div>
                                                             <div className="font-medium text-gray-900">{item.asset?.name || `Asset #${item.asset_id}`}</div>
-                                                            <div className="text-xs text-gray-500">{item.asset?.qr_code || "No QR"}</div>
+                                                            <div className="text-xs text-[#059669]" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>{item.asset?.qr_code || "No QR"}</div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -356,7 +360,7 @@ export default function AssignmentsPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
                                                         {item.status}
                                                     </span>
                                                 </td>
@@ -375,7 +379,7 @@ export default function AssignmentsPage() {
                                                         <button
                                                             onClick={() => handleCheckIn(item.asset_id)}
                                                             disabled={isProcessing === item.asset_id}
-                                                            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-100 disabled:opacity-50"
+                                                            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 disabled:opacity-50"
                                                         >
                                                             {isProcessing === item.asset_id ? (
                                                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -407,7 +411,7 @@ export default function AssignmentsPage() {
                                                         </div>
                                                         <div>
                                                             <div className="font-medium text-gray-900">{item.asset?.name || `Asset #${item.asset_id}`}</div>
-                                                            <div className="text-xs text-gray-500">{item.asset?.qr_code || "No QR"}</div>
+                                                            <div className="text-xs text-[#059669]" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>{item.asset?.qr_code || "No QR"}</div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -459,7 +463,7 @@ export default function AssignmentsPage() {
                                 <input
                                     type="text"
                                     placeholder="Search available assets..."
-                                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
@@ -474,7 +478,7 @@ export default function AssignmentsPage() {
                                         setIsSelectionModalOpen(false);
                                         setSearchQuery(""); // Clear search query after selection
                                     }}
-                                    className="w-full flex items-center gap-4 p-3 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100 text-left"
+                                    className="w-full flex items-center gap-4 p-3 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100 text-left"
                                 >
                                     <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-500">
                                         <Box className="w-5 h-5" />
@@ -483,7 +487,7 @@ export default function AssignmentsPage() {
                                         <div className="font-medium text-gray-900 truncate">{asset.name}</div>
                                         <div className="text-xs text-gray-500">QR: {asset.qr_code || asset.id}</div>
                                     </div>
-                                    <div className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                                    <div className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
                                         Available
                                     </div>
                                 </button>

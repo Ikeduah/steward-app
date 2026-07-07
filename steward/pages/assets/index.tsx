@@ -46,6 +46,13 @@ export default function AssetsPage() {
 
         try {
             const token = await getToken();
+            // Collect blob images to clean up once the assets are deleted.
+            const blobUrls = Array.isArray(assets)
+                ? assets
+                      .filter((a: any) => selectedIds.includes(a.id) && typeof a.image_url === "string" && a.image_url.includes(".blob.vercel-storage.com/"))
+                      .map((a: any) => a.image_url as string)
+                : [];
+
             await Promise.all(
                 selectedIds.map(id =>
                     fetch(`/api/assets/${id}`, {
@@ -54,6 +61,18 @@ export default function AssetsPage() {
                     })
                 )
             );
+
+            // Best-effort blob cleanup — a leaked blob is non-fatal.
+            await Promise.all(
+                blobUrls.map(url =>
+                    fetch("/api/assets/delete-blob", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url }),
+                    }).catch(() => {})
+                )
+            );
+
             setSelectedIds([]);
             mutate();
         } catch (err) {
@@ -67,7 +86,7 @@ export default function AssetsPage() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Assets</h1>
+                        <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)", color: "var(--ink)" }}>Assets</h1>
                         <p className="text-sm text-gray-500">Manage your inventory and equipment.</p>
                     </div>
                     <button
@@ -91,7 +110,7 @@ export default function AssetsPage() {
                             placeholder="Search assets..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold tracking-wider text-xs"
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-bold tracking-wider text-xs"
                         />
                     </div>
                     <div className="relative">
@@ -99,7 +118,7 @@ export default function AssetsPage() {
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="pl-10 pr-8 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 appearance-none font-bold tracking-wider text-xs"
+                            className="pl-10 pr-8 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none font-bold tracking-wider text-xs"
                         >
                             <option value="">All Status</option>
                             <option value="Available">Available</option>
@@ -117,10 +136,10 @@ export default function AssetsPage() {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleSelectAll}
-                                className="text-gray-400 hover:text-green-600 transition-colors"
+                                className="text-gray-400 hover:text-emerald-600 transition-colors"
                             >
                                 {Array.isArray(assets) && assets.length > 0 && selectedIds.length === assets.length ? (
-                                    <CheckSquare className="w-5 h-5 text-green-600" />
+                                    <CheckSquare className="w-5 h-5 text-emerald-600" />
                                 ) : (
                                     <Square className="w-5 h-5" />
                                 )}
@@ -172,14 +191,14 @@ export default function AssetsPage() {
                                             <td className="px-6 py-4 text-center">
                                                 <button
                                                     onClick={() => setSelectedIds(prev => prev.includes(asset.id) ? prev.filter(id => id !== asset.id) : [...prev, asset.id])}
-                                                    className="text-gray-400 hover:text-green-600 transition-colors"
+                                                    className="text-gray-400 hover:text-emerald-600 transition-colors"
                                                 >
-                                                    {selectedIds.includes(asset.id) ? <CheckSquare className="w-5 h-5 text-green-600" /> : <Square className="w-5 h-5" />}
+                                                    {selectedIds.includes(asset.id) ? <CheckSquare className="w-5 h-5 text-emerald-600" /> : <Square className="w-5 h-5" />}
                                                 </button>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <button onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} className="font-bold text-gray-900 hover:text-green-600 text-left text-xs">
+                                                    <button onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} className="font-bold text-gray-900 hover:text-emerald-600 text-left text-xs">
                                                         {asset.name}
                                                     </button>
                                                     <span className="text-[9px] text-gray-400 mt-0.5">Added {new Date(asset.created_at).toLocaleDateString()}</span>
@@ -187,14 +206,14 @@ export default function AssetsPage() {
                                             </td>
                                             <td className="px-6 py-4 text-[10px]">
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full border
-                                                    ${asset.status === 'Available' ? 'bg-green-50 text-green-700 border-green-100' :
+                                                    ${asset.status === 'Available' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                                                         asset.status === 'Checked Out' ? 'bg-red-50 text-red-700 border-red-100' :
                                                             asset.status === 'Maintenance' ? 'bg-amber-50 text-amber-700 border-amber-100' :
                                                                 'bg-gray-50 text-gray-700 border-gray-100'}`}>
                                                     {asset.status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-gray-500 font-mono text-[10px]">{asset.qr_code || '-'}</td>
+                                            <td className="px-6 py-4 text-[#059669] text-[10px]" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>{asset.qr_code || '-'}</td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2 text-xs">
                                                     <button title="Report Issue" onClick={() => { setAssetForIncident(asset); setIsIncidentModalOpen(true); }} className="text-amber-600 hover:bg-amber-50 p-1.5 rounded-lg transition-colors"><AlertTriangle className="w-4 h-4" /></button>
@@ -236,7 +255,7 @@ export default function AssetsPage() {
                                             <p className="text-[9px] text-gray-400 mt-0.5">Added {new Date(asset.created_at).toLocaleDateString()}</p>
                                         </div>
                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] border shrink-0
-                                            ${asset.status === 'Available' ? 'bg-green-50 text-green-700 border-green-100' :
+                                            ${asset.status === 'Available' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                                                 asset.status === 'Checked Out' ? 'bg-red-50 text-red-700 border-red-100' :
                                                     asset.status === 'Maintenance' ? 'bg-amber-50 text-amber-700 border-amber-100' :
                                                         'bg-gray-50 text-gray-700 border-gray-100'}`}>
@@ -244,7 +263,7 @@ export default function AssetsPage() {
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <div className="text-[10px] font-mono text-gray-500">{asset.qr_code || '-'}</div>
+                                        <div className="text-[10px] text-[#059669]" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>{asset.qr_code || '-'}</div>
                                         <div className="flex items-center gap-1">
                                             <button title="Report Issue" onClick={() => { setAssetForIncident(asset); setIsIncidentModalOpen(true); }} className="p-2 text-amber-600 transition-colors hover:bg-amber-50 rounded-lg"><AlertTriangle className="w-4 h-4" /></button>
                                             <button title="Edit Asset" onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} className="p-2 text-gray-600 transition-colors hover:bg-gray-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>

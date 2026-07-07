@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ChevronRight, Shield, Zap, Layout as LayoutIcon, Cpu, Globe, Users, ArrowLeft } from "lucide-react";
+import { ChevronRight, Shield, Zap, Layout as LayoutIcon, Cpu, Globe, ArrowLeft } from "lucide-react";
+import { StewardMark } from "../components/StewardMark";
 
 export default function Platform() {
     return (
@@ -17,8 +18,10 @@ export default function Platform() {
                     <span className="text-sm font-bold text-slate-400 group-hover:text-white transition-colors">Back to Home</span>
                 </Link>
                 <div className="flex items-center gap-2">
-                    <img src="/logo.png" alt="Steward Logo" className="w-7 h-7 rounded-lg object-contain p-0.5 border border-white/10" />
-                    <span className="text-lg font-bold tracking-tight text-white">Steward</span>
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(150deg, #34D399, #059669)" }}>
+                        <StewardMark className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-lg font-semibold tracking-tight text-white" style={{ fontFamily: "var(--font-space-grotesk)" }}>Steward</span>
                 </div>
             </nav>
 
