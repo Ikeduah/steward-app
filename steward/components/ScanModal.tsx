@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { X, RefreshCw } from 'lucide-react';
 
 interface ScanModalProps {
     isOpen: boolean;
@@ -8,40 +8,74 @@ interface ScanModalProps {
     onScan: (decodedText: string) => void;
 }
 
+type ScanError = 'insecure' | 'denied' | 'generic';
+
+const ERROR_MESSAGES: Record<ScanError, string> = {
+    insecure: 'Camera requires a secure connection (HTTPS).',
+    denied: 'Camera access was denied. Please allow camera access in your browser settings and try again.',
+    generic: "Couldn't access the camera. Please try again.",
+};
+
 export function ScanModal({ isOpen, onClose, onScan }: ScanModalProps) {
-    const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+    const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
+    const [error, setError] = useState<ScanError | null>(null);
+    const [retryToken, setRetryToken] = useState(0);
+
+    // Keep latest callbacks available without restarting the camera on every
+    // parent re-render (onScan/onClose are passed as fresh references).
+    const onScanRef = useRef(onScan);
+    const onCloseRef = useRef(onClose);
+    useEffect(() => { onScanRef.current = onScan; }, [onScan]);
+    useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
     useEffect(() => {
-        if (isOpen && !scannerRef.current) {
-            scannerRef.current = new Html5QrcodeScanner(
-                "reader",
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                false
-            );
+        if (!isOpen) return;
 
-            scannerRef.current.render(
-                (decodedText) => {
-                    onScan(decodedText);
-                    onClose();
-                    if (scannerRef.current) {
-                        scannerRef.current.clear();
-                    }
-                },
-                (error) => {
-                    // Scan errors are expected (e.g. no QR in frame) — intentionally ignored
-                }
-            );
+        setError(null);
+
+        if (typeof window !== 'undefined' && !window.isSecureContext) {
+            setError('insecure');
+            return;
         }
 
+        let cancelled = false;
+        const html5Qrcode = new Html5Qrcode('reader');
+        html5QrcodeRef.current = html5Qrcode;
+
+        html5Qrcode.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                onScanRef.current(decodedText);
+                onCloseRef.current();
+            },
+            () => { /* per-frame scan miss, expected — ignore */ }
+        ).catch((err) => {
+            if (cancelled) return;
+            console.error('Failed to start QR scanner', err);
+            const message = String(err);
+            setError(
+                message.includes('NotAllowedError') || message.includes('Permission denied')
+                    ? 'denied'
+                    : 'generic'
+            );
+        });
+
         return () => {
-            if (scannerRef.current) {
-                scannerRef.current.clear().catch(error => {
-                    console.error("Failed to clear scanner", error);
-                });
-                scannerRef.current = null;
+            cancelled = true;
+            const scanner = html5QrcodeRef.current;
+            html5QrcodeRef.current = null;
+            if (!scanner) return;
+
+            if (scanner.isScanning) {
+                scanner.stop()
+                    .then(() => scanner.clear())
+                    .catch((err) => console.error('Failed to stop scanner', err));
+            } else {
+                scanner.clear();
             }
         };
-    }, [isOpen]);
+    }, [isOpen, retryToken]);
 
     if (!isOpen) return null;
 
@@ -63,19 +97,32 @@ export function ScanModal({ isOpen, onClose, onScan }: ScanModalProps) {
                 </div>
 
                 {/* Scanner View */}
-                <div className="flex-1 overflow-y-auto bg-gray-900 flex items-center justify-center relative">
-                    <div id="reader" className="w-full max-w-sm mx-auto overflow-hidden rounded-2xl border-4 border-white/5 shadow-2xl"></div>
+                <div className="flex-1 overflow-y-auto bg-gray-900 flex items-center justify-center relative min-h-[280px]">
+                    <div id="reader" className="w-full max-w-sm mx-auto overflow-hidden rounded-2xl border-4 border-white/5 shadow-2xl min-h-[280px]"></div>
 
-                    {/* Visual Overlay */}
-                    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
-                        <div className="w-64 h-64 border-2 border-white/20 rounded-3xl relative">
-                            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg"></div>
-                            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg"></div>
-                            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg"></div>
-                            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg"></div>
+                    {error ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center bg-gray-900/95">
+                            <p className="text-white/80 text-sm font-medium">{ERROR_MESSAGES[error]}</p>
+                            <button
+                                onClick={() => setRetryToken((t) => t + 1)}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider rounded-full active:scale-95 transition-all"
+                            >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Try Again
+                            </button>
                         </div>
-                        <p className="mt-8 text-white/60 text-xs font-bold uppercase tracking-wider animate-pulse">Scanning for match...</p>
-                    </div>
+                    ) : (
+                        /* Visual Overlay */
+                        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                            <div className="w-64 h-64 border-2 border-white/20 rounded-3xl relative">
+                                <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg"></div>
+                                <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg"></div>
+                                <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg"></div>
+                                <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg"></div>
+                            </div>
+                            <p className="mt-8 text-white/60 text-xs font-bold uppercase tracking-wider animate-pulse">Scanning for match...</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer Info */}
