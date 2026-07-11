@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { X, Upload, Loader2, Printer, Trash2 } from "lucide-react";
-import QRCode from "react-qr-code";
 import { upload } from "@vercel/blob/client";
+import AssetTagCard from "./AssetTagCard";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB — matches the upload-url server limit
 
@@ -429,16 +429,14 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                             </button>
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                            <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 shrink-0">
-                                <QRCode 
-                                    id="asset-qr-svg"
-                                    value={formData.qr_code || "PENDING"} 
-                                    size={80} 
-                                    level="H" 
-                                />
-                            </div>
-                            <div className="flex-1 w-full space-y-1.5">
+                        <div className="flex flex-col items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <AssetTagCard
+                                qrValue={formData.qr_code || "PENDING"}
+                                assetId={formData.qr_code || "PENDING"}
+                                assetName={formData.name || "New Asset"}
+                                qrSize={110}
+                            />
+                            <div className="w-full space-y-1.5">
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Internal Identifier</p>
                                 <input
                                     type="text"
