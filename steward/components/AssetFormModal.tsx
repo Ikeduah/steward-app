@@ -301,7 +301,7 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                 </div>
 
                 {/* Form - Scrollable */}
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 custom-scrollbar">
+                <form id="asset-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 custom-scrollbar">
                     {error && (
                         <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs font-medium text-red-600 animate-in fade-in slide-in-from-top-1">
                             {error}
@@ -462,6 +462,7 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                     </button>
                     <button
                         type="submit"
+                        form="asset-form"
                         disabled={loading || uploading}
                         className="flex-[2] py-3 px-4 bg-black text-white rounded-xl text-xs font-extrabold shadow-lg shadow-black/10 hover:bg-gray-900 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                     >
