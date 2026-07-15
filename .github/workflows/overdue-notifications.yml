@@ -15,5 +15,5 @@ jobs:
       - name: Trigger overdue-check
         run: |
           curl --fail --silent --show-error \
-            -X POST "${{ vars.STEWARD_APP_URL }}/api/cron/overdue-check" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+            -X POST "${{ vars.STEWARD_APP_URL }}/api/internal/overdue-check" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
