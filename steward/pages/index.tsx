@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { ChevronRight, Shield, Zap, Layout as LayoutIcon, Cpu } from "lucide-react";
 import { StewardMark } from "../components/StewardMark";
+import { REQUEST_ACCESS_MAILTO } from "../lib/marketing";
 
 interface BrandFilm {
   id: string;
@@ -250,15 +251,15 @@ export default function Home() {
       `}</style>
 
       {/* Navigation */}
-      <nav className="relative z-10 glass-nav flex justify-between items-center py-5 px-6 md:px-12 max-w-full mx-auto w-full sticky top-0">
-        <div className="flex items-center gap-3 group cursor-pointer">
+      <nav className="relative z-10 glass-nav flex justify-between items-center gap-3 py-4 md:py-5 px-6 md:px-12 max-w-full mx-auto w-full sticky top-0">
+        <div className="flex items-center gap-3 group cursor-pointer min-w-0">
           <div className="relative">
             <div className="absolute inset-0 bg-emerald-500 blur-lg opacity-40 group-hover:opacity-80 transition-opacity rounded-xl"></div>
             <div className="relative w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(150deg, #34D399, #059669)" }}>
               <StewardMark className="w-5 h-5 text-white" />
             </div>
           </div>
-          <span className="text-xl font-semibold tracking-tight text-white group-hover:text-emerald-400 transition-colors" style={{ fontFamily: "var(--font-space-grotesk)" }}>Steward</span>
+          <span className="text-lg md:text-xl font-semibold tracking-tight text-white group-hover:text-emerald-400 transition-colors truncate" style={{ fontFamily: "var(--font-space-grotesk)" }}>Steward</span>
         </div>
 
         <div className="hidden md:flex items-center gap-10">
@@ -268,21 +269,16 @@ export default function Home() {
           <Link href="/promos/demos" className="text-sm font-bold text-slate-400 hover:text-emerald-400 transition-colors">Demos</Link>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 md:gap-6 shrink-0">
           <SignedOut>
             <SignInButton mode="modal">
-              <button className="text-sm font-bold text-slate-400 hover:text-white transition-colors">
+              <button className="bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] md:text-sm font-bold py-2.5 px-5 md:px-6 rounded-full transition-all shadow-lg shadow-emerald-900/40 active:scale-95 whitespace-nowrap shrink-0">
                 Sign In
-              </button>
-            </SignInButton>
-            <SignInButton mode="modal">
-              <button className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold py-2.5 px-6 rounded-full transition-all shadow-lg shadow-emerald-900/40 active:scale-95">
-                Sign up for free
               </button>
             </SignInButton>
           </SignedOut>
           <SignedIn>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
               <UserButton
                 appearance={{
                   elements: {
@@ -290,9 +286,9 @@ export default function Home() {
                   }
                 }}
               />
-              <Link href="/dashboard" className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold py-2.5 px-6 rounded-full transition-all shadow-lg shadow-emerald-900/40 active:scale-95 flex items-center gap-2">
+              <Link href="/dashboard" className="bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] md:text-sm font-bold py-2.5 px-5 md:px-6 rounded-full transition-all shadow-lg shadow-emerald-900/40 active:scale-95 flex items-center gap-2 whitespace-nowrap shrink-0">
                 Launch App
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 hidden sm:block" />
               </Link>
             </div>
           </SignedIn>
@@ -321,11 +317,14 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto">
           <SignedOut>
             <SignInButton mode="modal">
-              <button className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4.5 px-12 rounded-2xl text-xl transition-all transform hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2 group">
-                Sign up for free
+              <button className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4.5 px-12 rounded-2xl text-xl transition-all transform hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2 group">
+                Sign In
                 <ChevronRight className="w-6 h-6 group-hover:translate-x-1.5 transition-transform" />
               </button>
             </SignInButton>
+            <a href={REQUEST_ACCESS_MAILTO} className="w-full sm:w-auto bg-white/5 hover:bg-white/10 text-white font-bold py-4.5 px-12 rounded-2xl text-xl border border-white/10 hover:border-emerald-500/40 transition-all flex items-center justify-center">
+              Request access
+            </a>
           </SignedOut>
           <SignedIn>
             <Link href="/dashboard" className="w-full sm:w-auto">
