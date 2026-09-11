@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight, Check, X, Zap, Shield, Globe, ArrowLeft } from "lucide-react";
 import { StewardMark } from "../components/StewardMark";
+import { requestAccessMailto } from "../lib/marketing";
 
 export default function Pricing() {
     const plans = [
@@ -24,7 +25,7 @@ export default function Pricing() {
                 "Advanced Reporting",
                 "Priority Support"
             ],
-            cta: "Get Started",
+            cta: "Request access",
             highlight: false
         },
         {
@@ -44,7 +45,7 @@ export default function Pricing() {
                 "Priority Email Support"
             ],
             notIncluded: [],
-            cta: "Go Pro",
+            cta: "Request access",
             highlight: true
         }
     ];
@@ -125,14 +126,14 @@ export default function Pricing() {
                                 ))}
                             </div>
 
-                            <SignInButton mode="modal">
-                                <button className={`w-full py-4 rounded-2xl font-black text-lg transition-all active:scale-[0.98] ${plan.highlight
+                            <a
+                                href={requestAccessMailto(plan.name)}
+                                className={`block w-full py-4 rounded-2xl font-black text-lg text-center transition-all active:scale-[0.98] ${plan.highlight
                                     ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-xl shadow-emerald-500/30'
                                     : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
                                     }`}>
-                                    {plan.cta}
-                                </button>
-                            </SignInButton>
+                                {plan.cta}
+                            </a>
                         </div>
                     ))}
                 </div>
@@ -182,5 +183,3 @@ export default function Pricing() {
         </div>
     );
 }
-
-import { SignInButton } from "@clerk/nextjs";
