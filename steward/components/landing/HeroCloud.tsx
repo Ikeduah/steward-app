@@ -18,6 +18,9 @@ import {
   BAND_Z,
   CORRIDOR_LEFT,
   CORRIDOR_RIGHT,
+  driftStyle,
+  FADE_IN_END,
+  FADE_OUT_START,
   HERO_ITEMS,
   STILL_ITEMS,
   type HeroItem,
@@ -37,9 +40,11 @@ const PIN_HEIGHT_VH = 200;
  */
 function HeroItemInFlight({
   item,
+  index,
   progress,
 }: {
   item: HeroItem;
+  index: number;
   progress: MotionValue<number>;
 }) {
   const { enter, exit, band } = item;
@@ -57,7 +62,11 @@ function HeroItemInFlight({
   // camera. Both ramps are expressed in local progress so they stay
   // proportional however long the item's window is.
   const peak = BAND_OPACITY[band];
-  const opacity = useTransform(t, [0, 0.14, 0.82, 1], [0, peak, peak, 0]);
+  const opacity = useTransform(
+    t,
+    [0, FADE_IN_END, FADE_OUT_START, 1],
+    [0, peak, peak, 0],
+  );
 
   const transform = useMotionTemplate`translate3d(-50%, -50%, 0) scale(${scale}) rotate(${rotate}deg)`;
   const left = useMotionTemplate`${x}vw`;
@@ -83,7 +92,12 @@ function HeroItemInFlight({
         width: `${width}vw`,
       }}
     >
-      <div className="relative">
+      {/* The drift sits on this inner element rather than on the motion.div
+          above, so the scroll-driven transform stays a pure function of scroll
+          progress and scrubbing back up retraces the exact same path. A label
+          is inside here too, so it sways with its item instead of detaching
+          from the end of its leader line. */}
+      <div className="stw-drift relative" style={driftStyle(band, index)}>
         <Image
           src={item.src}
           alt={item.alt}
@@ -153,7 +167,7 @@ function ItemLabel({
 function StillCloud() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      {STILL_ITEMS.map((item) => {
+      {STILL_ITEMS.map((item, index) => {
         const still = item.still!;
         const width = BAND_WIDTH[item.band] * still.scale;
         return (
@@ -177,8 +191,18 @@ function StillCloud() {
               height={item.intrinsic[1]}
               sizes="(max-width: 768px) 30vw, 20vw"
               priority
-              className={item.band === "far" ? "h-auto w-full blur-[1.5px]" : "h-auto w-full"}
-              style={{ aspectRatio: `${item.intrinsic[0]} / ${item.intrinsic[1]}` }}
+              // The still arrangement has no inner wrapper and carries no
+              // labels, so the drift goes straight on the image. It matters
+              // most here: this is what phones and reduced-motion visitors get,
+              // and with no scroll binding the drift is the only life the hero
+              // has.
+              className={`stw-drift ${
+                item.band === "far" ? "h-auto w-full blur-[1.5px]" : "h-auto w-full"
+              }`}
+              style={{
+                ...driftStyle(item.band, index),
+                aspectRatio: `${item.intrinsic[0]} / ${item.intrinsic[1]}`,
+              }}
             />
           </div>
         );
@@ -281,8 +305,13 @@ function ScrollHero() {
     <div ref={pinRef} style={{ height: `${PIN_HEIGHT_VH}vh` }}>
       <div className="sticky top-0 min-h-[100dvh] overflow-hidden">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          {HERO_ITEMS.map((item) => (
-            <HeroItemInFlight key={item.name} item={item} progress={scrollYProgress} />
+          {HERO_ITEMS.map((item, index) => (
+            <HeroItemInFlight
+              key={item.name}
+              item={item}
+              index={index}
+              progress={scrollYProgress}
+            />
           ))}
         </div>
         <HeroType lift={lift} />

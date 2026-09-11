@@ -16,6 +16,7 @@ import {
   BAND_WIDTH,
   CORRIDOR_LEFT,
   CORRIDOR_RIGHT,
+  FADE_IN_END,
   HERO_ITEMS,
   LABELLED_ITEMS,
   STILL_ITEMS,
@@ -88,6 +89,25 @@ const weakAlt = HERO_ITEMS.filter((item) => {
   return alt.split(/\s+/).length < 6 || /\.(webp|png|jpe?g)\b/i.test(alt) || isBareSlug;
 });
 check("alt text", weakAlt.length === 0, weakAlt.map((i) => i.name).join(", ") || "all descriptive");
+
+// 7. The first frame has to be a finished image, not a set of objects caught
+//    mid-fade. Each item fades in over the first FADE_IN_END of its own local
+//    progress, so an item whose window opens only slightly before the scroll
+//    does is still part-way transparent when the page paints. Every item
+//    already on screen at p = 0 therefore has to be past its fade-in ramp
+//    there. Items that genuinely enter later (enter >= 0) are exempt: fading
+//    in mid-scroll is exactly what they are for.
+const tAtStart = (item: (typeof HERO_ITEMS)[number]) =>
+  (0 - item.enter) / (item.exit - item.enter);
+const onScreenAtStart = HERO_ITEMS.filter((item) => item.enter < 0);
+const halfFaded = onScreenAtStart.filter((item) => tAtStart(item) < FADE_IN_END);
+check(
+  "first frame opacity",
+  halfFaded.length === 0,
+  halfFaded.length === 0
+    ? `all ${onScreenAtStart.length} items on screen at p=0 are fully faded in`
+    : halfFaded.map((i) => `${i.name} at t=${tAtStart(i).toFixed(3)}`).join(", "),
+);
 
 // Set the code rather than calling process.exit(), which tears the loop down
 // while stdout handles are still open and aborts with a libuv assertion on

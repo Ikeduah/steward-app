@@ -11,6 +11,13 @@
  * little, and it rotates a few degrees. It fades in from the far distance and
  * fades out as it passes the camera. Nothing spins, nothing tumbles.
  *
+ * AMBIENT DRIFT
+ * On top of that, every item carries a slow sway and bob that runs whether or
+ * not anyone is scrolling, so the cloud is alive at rest instead of frozen
+ * until the first wheel event. It is a separate CSS animation on a separate
+ * element (see BAND_DRIFT below), which keeps the scroll transform a pure
+ * function of p and so keeps reverse scrubbing exact.
+ *
  * DEPTH BANDS
  * Band decides size and speed, not importance. Far items are small, dim, softly
  * blurred and barely move. Near items are large, cropped by the frame edges and
@@ -26,6 +33,7 @@
  * `npm run verify:hero` asserts it, so a bad edit to this table fails a check
  * instead of shipping an item that drifts through the headline.
  */
+import type { CSSProperties } from "react";
 
 export type Band = "far" | "mid" | "near";
 
@@ -86,10 +94,63 @@ export const BAND_SCALE: Record<Band, [number, number]> = {
 };
 
 /** Peak opacity per band. Far items read as atmosphere, not as subjects. */
-export const BAND_OPACITY: Record<Band, number> = { far: 0.7, mid: 1, near: 1 };
+export const BAND_OPACITY: Record<Band, number> = { far: 0.5, mid: 1, near: 1 };
 
 /** Paint order: near over mid over far. */
 export const BAND_Z: Record<Band, number> = { far: 1, mid: 2, near: 3 };
+
+/**
+ * Where an item's fade-in finishes and its fade-out begins, in local progress.
+ *
+ * Exported rather than inlined in HeroCloud.tsx because verify-hero.ts asserts
+ * against them: every item already on screen at p = 0 has to be past
+ * FADE_IN_END on the first frame, or the hero's opening image is a set of
+ * half-transparent objects. Inlining the numbers in the component would let
+ * the check and the behaviour drift apart silently.
+ */
+export const FADE_IN_END = 0.14;
+export const FADE_OUT_START = 0.82;
+
+/**
+ * Ambient drift: the slow sway and bob every item carries while nobody is
+ * scrolling.
+ *
+ * Motivated, in one sentence: the items are suspended in space, and suspended
+ * things are never perfectly still, so the drift sells the depth the parallax
+ * is built on. Amplitude is keyed to the band for the same reason the parallax
+ * is, rather than applied uniformly: a far item that swayed as far as a near
+ * one would flatten the depth the rest of this table works to create.
+ *
+ * Vertical and rotational only, never horizontal. verifyCorridor() below
+ * reasons about x, and nothing here touches x, so the proof stays valid.
+ */
+export const BAND_DRIFT: Record<
+  Band,
+  { y: string; rotate: string; seconds: number }
+> = {
+  far: { y: "0.5vh", rotate: "0.7deg", seconds: 13 },
+  mid: { y: "0.9vh", rotate: "1.1deg", seconds: 10 },
+  near: { y: "1.5vh", rotate: "1.4deg", seconds: 8 },
+};
+
+/**
+ * Per-item drift custom properties, read by the .stw-drift rule in globals.css.
+ *
+ * Variation comes from the item's index and never from Math.random, for the
+ * same reason nothing else in this file is randomized: a random period would
+ * give every visitor a different hero and would not survive a reload. The
+ * negative delay starts each item part-way through its cycle, so the field
+ * breathes out of phase instead of pulsing in unison on load.
+ */
+export function driftStyle(band: Band, index: number): CSSProperties {
+  const { y, rotate, seconds } = BAND_DRIFT[band];
+  return {
+    "--drift-y": y,
+    "--drift-r": rotate,
+    "--drift-dur": `${seconds + (index % 4) * 0.9}s`,
+    "--drift-delay": `-${(index * 1.7).toFixed(1)}s`,
+  } as CSSProperties;
+}
 
 export const CORRIDOR_LEFT = 28;
 export const CORRIDOR_RIGHT = 68;
@@ -105,7 +166,7 @@ export const HERO_ITEMS: HeroItem[] = [
     x: [13, -9],
     y: [20, 4],
     rotate: [-7, -2],
-    enter: -0.1,
+    enter: -0.14,
     exit: 0.62,
   },
   {
@@ -117,7 +178,7 @@ export const HERO_ITEMS: HeroItem[] = [
     x: [19, 7],
     y: [40, 47],
     rotate: [5, 1],
-    enter: -0.12,
+    enter: -0.24,
     exit: 1.1,
     still: { x: 16, y: 40, scale: 1.0, rotate: 4 },
   },
@@ -130,7 +191,7 @@ export const HERO_ITEMS: HeroItem[] = [
     x: [15, 3],
     y: [70, 84],
     rotate: [-4, 2],
-    enter: -0.16,
+    enter: -0.22,
     exit: 1.04,
     label: { id: "STW-0512", name: "Motorola R7", side: "right" },
     still: { x: 15, y: 74, scale: 0.85, rotate: -3 },
@@ -144,7 +205,7 @@ export const HERO_ITEMS: HeroItem[] = [
     x: [23, 18],
     y: [28, 24],
     rotate: [8, 3],
-    enter: -0.05,
+    enter: -0.22,
     exit: 1.05,
     still: { x: 22, y: 24, scale: 0.9, rotate: 6 },
   },
@@ -171,7 +232,7 @@ export const HERO_ITEMS: HeroItem[] = [
     x: [86, 108],
     y: [30, 16],
     rotate: [6, 1],
-    enter: -0.04,
+    enter: -0.16,
     exit: 0.7,
   },
   {
@@ -196,7 +257,7 @@ export const HERO_ITEMS: HeroItem[] = [
     x: [81, 93],
     y: [24, 14],
     rotate: [-8, -3],
-    enter: -0.08,
+    enter: -0.24,
     exit: 1.06,
     label: { id: "STW-0233", name: "Zebra DS2278", side: "left" },
     still: { x: 82, y: 24, scale: 0.95, rotate: -7 },
@@ -236,7 +297,7 @@ export const HERO_ITEMS: HeroItem[] = [
     x: [77, 82],
     y: [46, 42],
     rotate: [-6, -2],
-    enter: -0.02,
+    enter: -0.24,
     exit: 1.08,
   },
 ];

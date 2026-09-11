@@ -179,3 +179,35 @@ body {
   outline-offset: 3px;
   border-radius: var(--stw-radius-input);
 }
+
+/* Ambient drift for the hero cloud. A slow sway and bob, so items read as
+   suspended rather than pinned, and the depth the parallax builds survives the
+   moments when nobody is scrolling.
+
+   `alternate` is what keeps it a sway and not a spin: the item swings out to
+   the amplitude and comes back through where it started, so the brief's
+   "nothing spins, nothing tumbles" still holds. Deliberately eased rather than
+   sprung: a spring models a discrete state change, and this is a continuous
+   oscillation, where ease-in-out is the honest pendulum feel.
+
+   Amplitude, period and phase all arrive as custom properties from
+   driftStyle() in heroItems.ts. Horizontal travel is never one of them, so the
+   corridor that keeps the headline clear is unaffected. */
+@keyframes stw-drift {
+  from {
+    transform: translate3d(0, calc(var(--drift-y) * -1), 0)
+      rotate(calc(var(--drift-r) * -1));
+  }
+  to {
+    transform: translate3d(0, var(--drift-y), 0) rotate(var(--drift-r));
+  }
+}
+
+/* Gated so that still is the default and motion is the opt-in, rather than the
+   other way round. */
+@media (prefers-reduced-motion: no-preference) {
+  .stw-drift {
+    animation: stw-drift var(--drift-dur) ease-in-out infinite alternate;
+    animation-delay: var(--drift-delay);
+  }
+}
