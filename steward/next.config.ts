@@ -3,6 +3,14 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: true,
+  // Pin Turbopack's root to this directory. There is a second package-lock.json
+  // one level up, and without this Turbopack infers the parent as the project
+  // root, watches the wrong tree, and panics on every HMR write with a stale
+  // get_pages_structure_for_root_directory cell. That shows up in the browser
+  // as the dev server reloading the page in a loop.
+  turbopack: {
+    root: __dirname,
+  },
   // Proxy backend API calls to FastAPI.
   //   Dev  → local uvicorn server (path preserved, including the /api prefix).
   //   Prod → the Vercel Python serverless function (api/index.py), which

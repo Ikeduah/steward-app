@@ -64,10 +64,118 @@
 
   /* Use the Inter font variable loaded in _app.tsx */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Landing page faces. Satoshi carries display and body; JetBrains Mono is
+     reserved for asset IDs, timestamps, status values and record rows, where
+     it signals "this is a real record" rather than acting as decoration. */
+  --font-display: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --color-stw-emerald: #10B981;
+  --color-stw-ink: #06140E;
+  --color-stw-paper: #FBFBF9;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+/* ==========================================================================
+   LANDING PAGE TOKENS
+   Scoped to the marketing landing page only. Every name is prefixed --stw-* so
+   nothing here reaches the dashboard, which shares this stylesheet.
+
+   The page runs on exactly three brand colors plus a cool neutral ramp derived
+   between ink and paper. No second accent, no semantic red/amber/blue, no
+   gradients beyond the soft tonal washes each section defines for itself.
+   ========================================================================== */
+
+:root {
+  --stw-ink: #06140E;
+  --stw-paper: #FBFBF9;
+  --stw-emerald: #10B981;
+
+  /* Cool neutral ramp, ink to paper. */
+  --stw-n900: #0F1512;
+  --stw-n800: #1A2320;
+  --stw-n700: #2F3A35;
+  --stw-n600: #45524C;
+  --stw-n500: #5B6862;
+  --stw-n400: #8A958F;
+  --stw-n300: #B9C2BD;
+  --stw-n200: #D9DEDB;
+  --stw-n100: #EDF0EE;
+  --stw-n50:  #F6F8F7;
+
+  /* One radius scale. No exceptions. */
+  --stw-radius-card: 12px;
+  --stw-radius-input: 8px;
+  --stw-radius-pill: 9999px;
+}
+
+/* --------------------------------------------------------------------------
+   Surface scopes.
+
+   The page alternates ink and paper by section: 1, 5 and 8 are ink, the rest
+   are paper. This is the one deliberate "color block story" on the site, not
+   random alternation, and it is the composition the design brief is built on.
+
+   Each scope sets the same four semantic slots, so section components never
+   reference a raw color and never need dark: variants.
+   -------------------------------------------------------------------------- */
+
+[data-surface="ink"] {
+  --stw-surface: var(--stw-ink);
+  --stw-on-surface: var(--stw-paper);
+  --stw-muted: var(--stw-n300);
+  --stw-hairline: rgb(255 255 255 / 0.12);
+  --stw-float: #0C1E16;
+  --stw-shadow: 0 30px 80px -40px rgb(0 0 0 / 0.85);
+}
+
+[data-surface="paper"] {
+  --stw-surface: var(--stw-paper);
+  --stw-on-surface: var(--stw-ink);
+  --stw-muted: var(--stw-n500);
+  --stw-hairline: rgb(6 20 14 / 0.14);
+  --stw-float: #FFFFFF;
+  --stw-shadow: 0 30px 80px -40px rgb(6 20 14 / 0.28);
+}
+
+/* Real dark mode, not a filter. The ink/paper rhythm survives: paper sections
+   drop to the darkest neutral while ink sections stay at true ink, so the
+   section-to-section contrast that carries the composition is still readable. */
+@media (prefers-color-scheme: dark) {
+  [data-surface="ink"] {
+    --stw-surface: var(--stw-ink);
+    --stw-on-surface: var(--stw-paper);
+    --stw-muted: var(--stw-n400);
+    --stw-hairline: rgb(255 255 255 / 0.10);
+    --stw-float: #0A1912;
+    --stw-shadow: 0 30px 80px -40px rgb(0 0 0 / 0.9);
+  }
+
+  [data-surface="paper"] {
+    --stw-surface: var(--stw-n900);
+    --stw-on-surface: var(--stw-paper);
+    --stw-muted: var(--stw-n400);
+    --stw-hairline: rgb(255 255 255 / 0.13);
+    --stw-float: var(--stw-n800);
+    --stw-shadow: 0 30px 80px -40px rgb(0 0 0 / 0.7);
+  }
+}
+
+/* Every section paints its own ground from its scope. */
+.stw-surface {
+  background-color: var(--stw-surface);
+  color: var(--stw-on-surface);
+}
+
+/* Shared focus treatment. Emerald ring on both grounds, offset against the
+   current surface so it stays visible on ink, on paper, and over photography. */
+.stw-focus:focus-visible {
+  outline: 2px solid var(--stw-emerald);
+  outline-offset: 3px;
+  border-radius: var(--stw-radius-input);
 }
