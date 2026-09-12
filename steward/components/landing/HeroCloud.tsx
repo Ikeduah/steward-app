@@ -9,7 +9,7 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
-import { REQUEST_ACCESS_MAILTO } from "../../lib/marketing";
+import { requestAccessHref } from "../../lib/marketing";
 import { LandingNav } from "./LandingNav";
 import {
   BAND_OPACITY,
@@ -248,12 +248,12 @@ function HeroType({ lift }: { lift?: MotionValue<number> }) {
           guess where the gear went.
         </p>
         <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
-          <a
-            href={REQUEST_ACCESS_MAILTO}
+          <Link
+            href={requestAccessHref()}
             className="stw-focus inline-flex items-center rounded-full bg-stw-emerald px-7 py-3.5 font-medium text-stw-ink transition-transform active:scale-[0.98]"
           >
             Request access
-          </a>
+          </Link>
           <Link
             href="#how-it-works"
             className="stw-focus inline-flex items-center gap-2 text-[color:var(--stw-muted)] transition-colors hover:text-[color:var(--stw-on-surface)]"

@@ -14,7 +14,7 @@ sys.path.append(str(Path(__file__).parent))
 from app.core.security import clerk_guard
 from app.core.config import get_database_url
 from app.core.db import Base, engine
-from app.routers import assets, assignments, activity, incidents, billing, internal
+from app.routers import assets, assignments, activity, incidents, billing, internal, public
 from app.models.assignment import Assignment 
 from app.models.activity import ActivityLog 
 from app.models.incident import Incident
@@ -84,6 +84,9 @@ app.include_router(activity.router, prefix="/api/activity", tags=["Activity"])
 app.include_router(incidents.router, prefix="/api/incidents", tags=["Incidents"])
 app.include_router(billing.router, prefix="/api/billing", tags=["Billing"])
 app.include_router(internal.router, prefix="/api/internal", tags=["Internal"])
+# Deliberately unauthenticated: this router serves the public marketing site,
+# whose visitors have no accounts yet. See app/routers/public.py.
+app.include_router(public.router, prefix="/api/public", tags=["Public"])
 
 # Local-only Sentry verification. Gated behind an env flag so it never exists in
 # production: set SENTRY_DEBUG_ROUTE=1 in local dev, hit /api/sentry-debug once to

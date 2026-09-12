@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import { StewardMark } from "../StewardMark";
-import { REQUEST_ACCESS_MAILTO } from "../../lib/marketing";
+import { requestAccessHref } from "../../lib/marketing";
 
 /**
  * Landing page navigation.
@@ -56,12 +56,12 @@ export function LandingNav() {
                 Sign in
               </button>
             </SignInButton>
-            <a
-              href={REQUEST_ACCESS_MAILTO}
+            <Link
+              href={requestAccessHref()}
               className="stw-focus hidden whitespace-nowrap rounded-full bg-stw-emerald px-5 py-2.5 text-sm font-medium text-stw-ink transition-transform active:scale-[0.98] md:inline-flex"
             >
               Request access
-            </a>
+            </Link>
           </SignedOut>
           <SignedIn>
             <Link

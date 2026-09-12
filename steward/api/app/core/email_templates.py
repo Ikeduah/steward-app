@@ -1,7 +1,7 @@
 """Branded transactional email design system for Steward.
 
 Presentation only. This module owns the brand tokens, a set of reusable
-table-based building blocks, and the four composed transactional templates.
+table-based building blocks, and the composed transactional templates.
 
 Every builder that emits a user-controlled value **escapes it internally**
 (`data_row`, `status_badge`, `list_table`). Senders in
@@ -332,3 +332,42 @@ def overdue_email(items: list[dict]) -> tuple[str, str]:
     )
     subject = f"[Steward] {count} Overdue {noun.capitalize()} Need Attention"
     return subject, html_doc
+
+
+def access_request_email(
+    name: str,
+    email: str,
+    organization: str,
+    team_size: str,
+    plan: str,
+    notes: str,
+) -> tuple[str, str]:
+    """Inbound access request from the public marketing site.
+
+    Unlike the four templates above this one is addressed to the Steward team,
+    not to a customer's admins, so it carries no CTA button — the action is to
+    hit reply, and the sender sets Reply-To to the prospect for exactly that.
+    """
+    rows = (
+        data_row("Name", name)
+        + data_row("Email", email, mono=True)
+        + data_row("Organization", organization)
+    )
+    if team_size:
+        rows += data_row("Team size", team_size, mono=True)
+    if plan:
+        rows += data_row("Plan of interest", plan)
+    if notes:
+        rows += data_row("What they'd track", notes)
+
+    body = (
+        heading("New access request")
+        + lead(f"{name} at {organization} asked for an invitation.")
+        + data_table(rows)
+    )
+    html_doc = wrapper(
+        f"Access request: {organization}",
+        body,
+        preheader=f"{name} · {organization} · {email}",
+    )
+    return f"[Steward] Access Request: {organization}", html_doc

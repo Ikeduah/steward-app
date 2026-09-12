@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { StewardMark } from "../StewardMark";
-import { REQUEST_ACCESS_MAILTO } from "../../lib/marketing";
+import { requestAccessHref } from "../../lib/marketing";
 
 /**
  * Section 8. Close, plus the site footer.
@@ -18,7 +18,7 @@ import { REQUEST_ACCESS_MAILTO } from "../../lib/marketing";
 
 const FOOTER_COLUMNS: {
   heading: string;
-  links: { label: string; href: string; external?: boolean }[];
+  links: { label: string; href: string }[];
 }[] = [
   {
     heading: "Product",
@@ -29,7 +29,7 @@ const FOOTER_COLUMNS: {
   },
   {
     heading: "Company",
-    links: [{ label: "Contact", href: REQUEST_ACCESS_MAILTO, external: true }],
+    links: [{ label: "Request access", href: requestAccessHref() }],
   },
   {
     heading: "Resources",
@@ -60,12 +60,12 @@ export function SectionClose() {
             Ready to end the equipment chase?
           </h2>
 
-          <a
-            href={REQUEST_ACCESS_MAILTO}
+          <Link
+            href={requestAccessHref()}
             className="stw-focus mt-10 inline-flex items-center rounded-full bg-stw-emerald px-7 py-3.5 font-medium text-stw-ink transition-transform active:scale-[0.98]"
           >
             Request access
-          </a>
+          </Link>
 
           <p className="mt-6 text-sm text-[color:var(--stw-muted)]">
             Steward is invitation only while we onboard teams one at a time.
@@ -84,21 +84,12 @@ export function SectionClose() {
               <ul className="mt-5 space-y-3">
                 {column.links.map((link) => (
                   <li key={link.label}>
-                    {link.external ? (
-                      <a
-                        href={link.href}
-                        className="stw-focus font-mono text-[13px] transition-colors hover:text-stw-emerald"
-                      >
-                        {link.label}
-                      </a>
-                    ) : (
-                      <Link
-                        href={link.href}
-                        className="stw-focus font-mono text-[13px] transition-colors hover:text-stw-emerald"
-                      >
-                        {link.label}
-                      </Link>
-                    )}
+                    <Link
+                      href={link.href}
+                      className="stw-focus font-mono text-[13px] transition-colors hover:text-stw-emerald"
+                    >
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
