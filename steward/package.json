@@ -13,7 +13,6 @@
     "@anthropic-ai/sdk": "^0.52.0",
     "@clerk/nextjs": "^6.36.8",
     "@microsoft/fetch-event-source": "^2.0.1",
-    "@sentry/nextjs": "^10.65.0",
     "@vercel/blob": "^2.5.0",
     "framer-motion": "^12.38.0",
     "html5-qrcode": "^2.3.8",
