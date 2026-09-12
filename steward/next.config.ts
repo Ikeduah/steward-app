@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -58,4 +59,21 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "issachar-solutions",
+  project: "javascript-nextjs",
+
+  // Source map upload token (build-time secret). When unset, the build still
+  // succeeds — source maps just aren't uploaded.
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Upload a wider set of client files for better stack-trace resolution.
+  widenClientFileUpload: true,
+
+  // Proxy Sentry events through this route to bypass ad-blockers. No middleware
+  // exists to exclude it, and it doesn't collide with the /api/* FastAPI rewrite.
+  tunnelRoute: "/monitoring",
+
+  // Only print Sentry build plugin output in CI.
+  silent: !process.env.CI,
+});

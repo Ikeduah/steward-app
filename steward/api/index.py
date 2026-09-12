@@ -1,5 +1,6 @@
 import os
 import logging
+import sentry_sdk
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -19,6 +20,24 @@ from app.models.activity import ActivityLog
 from app.models.incident import Incident
 
 logger = logging.getLogger(__name__)
+
+# Initialize Sentry before the app is created so the FastAPI integration (auto-enabled
+# because `fastapi` is installed) hooks into request handling and unhandled exceptions.
+# DSN comes from the environment (loaded via the app.core.config import above); when it's
+# unset — e.g. tests and local dev — init is skipped and Sentry is a no-op.
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=os.getenv("SENTRY_ENVIRONMENT", "development"),
+        # Multi-tenant API: don't ship user IP / request headers / user identifiers.
+        send_default_pii=False,
+        # Forward application logs to Sentry.
+        enable_logs=True,
+        # Tracing sample rate is env-tunable per environment (low default keeps
+        # serverless overhead/cost down); continuous profiling is intentionally off.
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+    )
 
 # Initialize Database
 # Production/staging schema is managed by Alembic migrations (run externally:
@@ -65,6 +84,14 @@ app.include_router(activity.router, prefix="/api/activity", tags=["Activity"])
 app.include_router(incidents.router, prefix="/api/incidents", tags=["Incidents"])
 app.include_router(billing.router, prefix="/api/billing", tags=["Billing"])
 app.include_router(internal.router, prefix="/api/internal", tags=["Internal"])
+
+# Local-only Sentry verification. Gated behind an env flag so it never exists in
+# production: set SENTRY_DEBUG_ROUTE=1 in local dev, hit /api/sentry-debug once to
+# confirm events reach Sentry, then unset it.
+if os.getenv("SENTRY_DEBUG_ROUTE") == "1":
+    @app.get("/api/sentry-debug")
+    async def trigger_error():
+        _ = 1 / 0
 
 @app.get("/api/health")
 def health():
