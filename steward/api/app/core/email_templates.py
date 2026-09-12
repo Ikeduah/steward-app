@@ -64,11 +64,20 @@ EMAIL_ASSET_BASE_URL = os.getenv("EMAIL_ASSET_BASE_URL", "https://stward.app").r
 # Reusable building blocks
 # ---------------------------------------------------------------------------
 
-def wrapper(title: str, body_html: str, preheader: str = "") -> str:
+def wrapper(
+    title: str,
+    body_html: str,
+    preheader: str = "",
+    footer_html: str | None = None,
+) -> str:
     """Full HTML document: preheader + emerald PNG-logo header + card + footer.
 
-    ``title`` and ``preheader`` are escaped; ``body_html`` is trusted markup
-    assembled from the other builders.
+    ``title`` and ``preheader`` are escaped; ``body_html`` and ``footer_html``
+    are trusted markup assembled from the other builders.
+
+    ``footer_html`` replaces the default admin footer. Pass one for any mail not
+    addressed to a customer's admins — otherwise the recipient is told they are
+    an admin of an organization they may have nothing to do with.
     """
     e_title = html.escape(title)
     preheader_html = ""
@@ -79,6 +88,11 @@ def wrapper(title: str, body_html: str, preheader: str = "") -> str:
             f'opacity:0;">{html.escape(preheader)}</div>'
         )
     logo_src = f"{EMAIL_ASSET_BASE_URL}/email/steward-logo@2x.png"
+    footer_block = (
+        footer_html
+        if footer_html is not None
+        else footer([("Manage settings", f"{EMAIL_ASSET_BASE_URL}/organization")])
+    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -107,7 +121,7 @@ def wrapper(title: str, body_html: str, preheader: str = "") -> str:
       <!-- Footer -->
       <tr>
         <td style="padding:20px 32px 28px;border-top:1px solid {HAIRLINE};">
-          {footer([("Manage settings", f"{EMAIL_ASSET_BASE_URL}/organization")])}
+          {footer_block}
         </td>
       </tr>
     </table>
@@ -198,19 +212,26 @@ def list_table(headers: list[str], rows: list[list[str]]) -> str:
       </table>"""
 
 
-def footer(links: list[tuple[str, str]]) -> str:
-    """Hairline footer with emerald links + admin-recipient explainer.
+ADMIN_NOTE = "You're receiving this because you're an admin of your Steward organization."
 
-    ``links`` is a list of ``(label, url)`` tuples. Escapes both.
+
+def footer(links: list[tuple[str, str]], note: str = ADMIN_NOTE) -> str:
+    """Hairline footer with emerald links + an explainer for the recipient.
+
+    ``links`` is a list of ``(label, url)`` tuples, and may be empty. ``note``
+    defaults to the admin explainer the customer-facing mail wants; override it
+    for anything addressed elsewhere. Everything here is escaped.
     """
     link_html = " · ".join(
         f'<a href="{html.escape(url)}" style="color:{EMERALD_600};text-decoration:none;">{html.escape(label)}</a>'
         for label, url in links
     )
+    text = html.escape(note)
+    if link_html:
+        text += f"<br>{link_html}"
     return (
         f'<p style="margin:0;font-family:{BODY};font-size:12px;line-height:1.6;color:{NEUTRAL_400};">'
-        f"You're receiving this because you're an admin of your Steward organization.<br>"
-        f"{link_html}</p>"
+        f"{text}</p>"
     )
 
 
@@ -369,5 +390,10 @@ def access_request_email(
         f"Access request: {organization}",
         body,
         preheader=f"{name} · {organization} · {email}",
+        # Not a customer's admin: the recipient is us, and the only action is
+        # to reply, so neither the admin explainer nor a settings link applies.
+        footer_html=footer(
+            [], note="Sent by the Steward marketing site. Reply to answer this request."
+        ),
     )
     return f"[Steward] Access Request: {organization}", html_doc
