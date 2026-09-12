@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 _resend_api_key = os.getenv("RESEND_API_KEY")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "Steward <notifications@stward.app>")
+# Where marketing-site access requests land. Same address the page offers as its
+# mail fallback, so both routes arrive in one inbox.
+REQUEST_ACCESS_TO = os.getenv("REQUEST_ACCESS_TO", "hello@stward.app")
 
 if _resend_api_key:
     resend.api_key = _resend_api_key
@@ -80,22 +83,38 @@ async def _is_notifications_enabled(org_id: str) -> bool:
 # Email sending
 # ---------------------------------------------------------------------------
 
-def _send_email(to: list[str], subject: str, html: str) -> None:
+def _send_email(
+    to: list[str],
+    subject: str,
+    html: str,
+    reply_to: Optional[str] = None,
+) -> bool:
+    """Send one email. Returns whether it actually went out.
+
+    The notification senders ignore the return value — a missed notification is
+    not worth failing a check-out over — but the access-request endpoint needs
+    it, because a prospect whose request vanished has to be told.
+    """
     if not _resend_api_key:
         logger.warning("RESEND_API_KEY not set — skipping email notification")
-        return
+        return False
     if not to:
         logger.info("No admin emails found — skipping notification")
-        return
+        return False
+    payload = {
+        "from": FROM_EMAIL,
+        "to": to,
+        "subject": subject,
+        "html": html,
+    }
+    if reply_to:
+        payload["reply_to"] = reply_to
     try:
-        resend.Emails.send({
-            "from": FROM_EMAIL,
-            "to": to,
-            "subject": subject,
-            "html": html,
-        })
+        resend.Emails.send(payload)
+        return True
     except Exception as e:
         logger.error("Failed to send email notification: %s", type(e).__name__)
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -171,3 +190,30 @@ async def send_overdue_notification(
 
     subject, html = et.overdue_email(items)
     _send_email(to=emails, subject=subject, html=html)
+
+
+def send_access_request(
+    name: str,
+    email: str,
+    organization: str,
+    team_size: str,
+    plan: str,
+    notes: str,
+) -> bool:
+    """Mail an inbound access request to the Steward team.
+
+    Synchronous and returns whether it sent: unlike the notifications above,
+    which are fire-and-forget background tasks, the prospect is waiting on the
+    answer and has to be told if it failed.
+
+    Reply-To is the prospect, so answering the notification answers them.
+    """
+    subject, html = et.access_request_email(
+        name, email, organization, team_size, plan, notes
+    )
+    return _send_email(
+        to=[REQUEST_ACCESS_TO],
+        subject=subject,
+        html=html,
+        reply_to=email,
+    )

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify:hero": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-hero.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",

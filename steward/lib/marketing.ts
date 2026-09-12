@@ -23,3 +23,15 @@ export function requestAccessMailto(plan?: string): string {
 }
 
 export const REQUEST_ACCESS_MAILTO = requestAccessMailto();
+
+/**
+ * The in-app destination for every "request access" call to action.
+ *
+ * A `mailto:` is dropped silently by any browser with no registered mail
+ * handler, which is the default on Windows Chrome and on any machine whose
+ * owner lives in webmail. The CTAs therefore point at a page that always
+ * opens, and the mailto survives there as a fallback for people who want it.
+ */
+export function requestAccessHref(plan?: string): string {
+    return plan ? `/request-access?plan=${encodeURIComponent(plan)}` : "/request-access";
+}

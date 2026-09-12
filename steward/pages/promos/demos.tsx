@@ -335,7 +335,6 @@ export default function DemosPage() {
         </Link>
         <div className="nav-links">
           <Link href="/" className="nav-link">← Home</Link>
-          <Link href="/#brand-films" className="nav-link">Brand Films</Link>
         </div>
       </nav>
 
