@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useAuth, useOrganization } from "@clerk/nextjs";
 import useSWR from "swr";
 import { Layout } from "@/components/Layout";
+import { AuditExportModal } from "@/components/AuditExportModal";
 import {
     History,
     Search,
@@ -17,7 +18,9 @@ import {
     Loader2,
     Calendar,
     Clock,
-    AlertTriangle
+    AlertTriangle,
+    Archive,
+    FileDown
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 20;
@@ -30,6 +33,7 @@ export default function ActivityPage() {
 
     const [searchQuery, setSearchQuery] = useState("");
     const [limit, setLimit] = useState(ITEMS_PER_PAGE);
+    const [exportOpen, setExportOpen] = useState(false);
 
     // Fetch activity logs
     const { data: activityLogs, error, isValidating } = useSWR(
@@ -89,6 +93,13 @@ export default function ActivityPage() {
                     color: 'bg-emerald-50 text-emerald-700',
                     icon: RotateCcw,
                     description: (name: string) => `checked in "${name}"`
+                };
+            case 'retired':
+                return {
+                    label: 'Retired',
+                    color: 'bg-gray-100 text-gray-700',
+                    icon: Archive,
+                    description: (name: string) => `retired "${name}"`
                 };
             case 'deleted':
                 return {
@@ -216,12 +227,21 @@ export default function ActivityPage() {
             <div className="max-w-5xl mx-auto py-4 md:py-8">
                 {/* Header */}
                 <div className="px-4 md:px-0 mb-6 md:mb-8 flex flex-col gap-4">
-                    <div className="flex flex-col">
-                        <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)", color: "var(--ink)" }}>
-                            <History className="w-6 h-6 md:w-7 md:h-7 text-gray-600" />
-                            Activity Log
-                        </h1>
-                        <p className="text-xs md:text-sm text-gray-500 mt-0.5">Audit trail of all asset movements.</p>
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex flex-col">
+                            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)", color: "var(--ink)" }}>
+                                <History className="w-6 h-6 md:w-7 md:h-7 text-gray-600" />
+                                Activity Log
+                            </h1>
+                            <p className="text-xs md:text-sm text-gray-500 mt-0.5">Audit trail of all asset movements.</p>
+                        </div>
+                        <button
+                            onClick={() => setExportOpen(true)}
+                            className="shrink-0 flex items-center gap-2 px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+                        >
+                            <FileDown className="w-4 h-4" />
+                            <span>Export</span>
+                        </button>
                     </div>
 
                     <div className="relative w-full">
@@ -252,7 +272,8 @@ export default function ActivityPage() {
                             filteredLogs.map((log: any) => {
                                 const details = getActivityDetails(log);
                                 const Icon = details.icon;
-                                const userName = userMap[log.actor_id] || "System";
+                                // The saved name covers people who have since left the team.
+                                const userName = userMap[log.actor_id] || log.actor_name || "System";
 
                                 return (
                                     <div key={log.id} className="p-4 hover:bg-gray-50/50 transition-colors flex items-start gap-4">
@@ -303,6 +324,7 @@ export default function ActivityPage() {
                     )}
                 </div>
             </div>
+            <AuditExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} />
         </Layout>
     );
 }

@@ -3,8 +3,9 @@ import useSWR from "swr";
 import { useAuth } from "@clerk/nextjs";
 import { Layout } from "../../components/Layout";
 import { AssetFormModal } from "../../components/AssetFormModal";
-import { Plus, Search, Filter, QrCode, Edit2, Archive, CheckSquare, Square, AlertTriangle } from "lucide-react";
+import { Plus, Search, Filter, QrCode, Edit2, Archive, CheckSquare, Square, AlertTriangle, FileDown } from "lucide-react";
 import { IncidentModal } from "../../components/IncidentModal";
+import { AuditExportModal } from "../../components/AuditExportModal";
 
 // Fetcher for SWR
 const fetcher = (url: string, token: string) =>
@@ -19,6 +20,7 @@ export default function AssetsPage() {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
     const [assetForIncident, setAssetForIncident] = useState<any>(null);
+    const [assetForExport, setAssetForExport] = useState<{ id: number; name: string } | null>(null);
 
     // Fetch assets with SWR
     const { data: assets, error, mutate } = useSWR(
@@ -210,6 +212,7 @@ export default function AssetsPage() {
                                                 <div className="flex items-center justify-end gap-2 text-xs">
                                                     <button title="Report Issue" onClick={() => { setAssetForIncident(asset); setIsIncidentModalOpen(true); }} className="text-amber-600 hover:bg-amber-50 p-1.5 rounded-lg transition-colors"><AlertTriangle className="w-4 h-4" /></button>
                                                     <button title="Edit Asset" onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} className="text-gray-600 hover:bg-gray-50 p-1.5 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                                                    <button title="Export history" onClick={() => setAssetForExport({ id: asset.id, name: asset.name })} className="text-gray-600 hover:bg-gray-50 p-1.5 rounded-lg transition-colors"><FileDown className="w-4 h-4" /></button>
                                                     <button title="Retire item" onClick={() => handleRetire([asset.id])} className="text-red-400 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Archive className="w-4 h-4" /></button>
                                                 </div>
                                             </td>
@@ -259,6 +262,7 @@ export default function AssetsPage() {
                                         <div className="flex items-center gap-1">
                                             <button title="Report Issue" onClick={() => { setAssetForIncident(asset); setIsIncidentModalOpen(true); }} className="p-2 text-amber-600 transition-colors hover:bg-amber-50 rounded-lg"><AlertTriangle className="w-4 h-4" /></button>
                                             <button title="Edit Asset" onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} className="p-2 text-gray-600 transition-colors hover:bg-gray-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
+                                            <button title="Export history" onClick={() => setAssetForExport({ id: asset.id, name: asset.name })} className="p-2 text-gray-600 transition-colors hover:bg-gray-50 rounded-lg"><FileDown className="w-4 h-4" /></button>
                                             <button title="Retire item" onClick={() => handleRetire([asset.id])} className="p-2 text-red-400 transition-colors hover:bg-red-50 rounded-lg"><Archive className="w-4 h-4" /></button>
                                         </div>
                                     </div>
@@ -282,6 +286,11 @@ export default function AssetsPage() {
                 }}
             />
 
+            <AuditExportModal
+                isOpen={assetForExport !== null}
+                onClose={() => setAssetForExport(null)}
+                asset={assetForExport}
+            />
             <IncidentModal
                 isOpen={isIncidentModalOpen}
                 onClose={() => {
