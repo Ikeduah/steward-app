@@ -275,16 +275,12 @@ export const HERO_ITEMS: HeroItem[] = [
     exit: 1.14,
     still: { x: 88, y: 58, scale: 1.05, rotate: 6 },
   },
-  // ASSET GAP: there is no drill cutout yet, so the hard case stands in for
-  // the drill kit's case. Replace src, intrinsic and alt with a
-  // drill-kit.webp (a drill in its open hard case, emerald QR tag on the lid,
-  // shot to match the other cutouts) as soon as it exists.
   {
-    name: "hard-case",
+    name: "drill-kit",
     band: "mid",
-    src: "/landing/hero-items/hard-case.webp",
-    intrinsic: [1400, 1013],
-    alt: "Hard-shell drill kit case with an emerald QR asset tag on its lid",
+    src: "/landing/hero-items/drill-kit.webp",
+    intrinsic: [1400, 1502],
+    alt: "Cordless drill and battery in an open hard case, tagged with an emerald QR asset tag on its lid",
     x: [80, 92],
     y: [80, 92],
     rotate: [4, -1],

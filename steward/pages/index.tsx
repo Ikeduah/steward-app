@@ -7,6 +7,7 @@ import { SectionLedger } from "../components/landing/SectionLedger";
 import { SectionIndustries } from "../components/landing/SectionIndustries";
 import { SectionProof } from "../components/landing/SectionProof";
 import { SectionClose } from "../components/landing/SectionClose";
+import { SITE_URL } from "../lib/marketing";
 
 /**
  * Steward marketing landing page.
@@ -23,10 +24,9 @@ import { SectionClose } from "../components/landing/SectionClose";
  * logos to put there yet, and invented ones destroy credibility with the people
  * this page is written for.
  *
- * ASSET GAP: the Open Graph share image (1200x630) has not been produced. It
- * should be the hero still with the three labelled items (camera, laptop,
- * drill kit). The og:image tag is deliberately absent rather than pointed at a
- * wrong-shaped file, which would render worse than no card at all.
+ * The share image (public/og-image.jpg, 1200x630) is a capture of the hero at
+ * the point in the scroll where all three labelled items are on screen. Crawlers
+ * need an absolute URL, so it is built from SITE_URL.
  */
 export default function Home() {
   return (
@@ -43,6 +43,14 @@ export default function Home() {
           content="Tag any item with a QR code. Scan to check out and return. Know where every item is and who has it."
         />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content={`${SITE_URL}/og-image.jpg`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta
+          property="og:image:alt"
+          content="Steward hero: a camera, a laptop and a drill kit, each with a QR asset tag, around the line Know where every item is, and who has it."
+        />
+        <meta name="twitter:card" content="summary_large_image" />
       </Head>
 
       <main>

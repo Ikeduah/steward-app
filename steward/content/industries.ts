@@ -66,26 +66,3 @@ export const INDUSTRIES: Industry[] = [
     examples: ["DeWalt drill kit", "Laser level", "Extension cable"],
   },
 ];
-
-/**
- * ASSET GAP: these two photographs have not been produced yet. Until they land
- * in public/landing/photos, section 6 renders their panels on flat ink instead
- * of requesting a file that 404s. Delete an entry once its file is committed.
- *
- * Prompts, matched to the existing section 6 set (QR tag visible, emerald only
- * on the tag, 16:10):
- *
- * photo-school-cart: School library corner, soft afternoon light. Chromebook
- * charging cart, door open, each laptop with a small white QR tag with a thin
- * emerald border. A student's hand, seen from the side, pulls one out. Shelves
- * soft behind. Documentary, 35mm, shallow depth of field, no faces, no logos.
- *
- * photo-trades-tool-crib: Tidy tool room in a job site trailer. Pegboard of
- * power tools and hard cases; a drill case on the counter with a small white QR
- * tag with a thin emerald border. A gloved hand scans it with a phone. Morning
- * window light. Documentary, 35mm, shallow depth of field, no faces, no logos.
- */
-export const PENDING_PHOTOS = new Set<string>([
-  "/landing/photos/photo-school-cart.jpg",
-  "/landing/photos/photo-trades-tool-crib.jpg",
-]);

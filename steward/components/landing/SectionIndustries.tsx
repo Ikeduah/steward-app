@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useState } from "react";
-import { INDUSTRIES, PENDING_PHOTOS } from "../../content/industries";
+import { INDUSTRIES } from "../../content/industries";
 
 /**
  * Section 6. Accordion slices.
@@ -46,7 +46,6 @@ export function SectionIndustries() {
         >
           {INDUSTRIES.map((industry, index) => {
             const expanded = index === active;
-            const hasPhoto = !PENDING_PHOTOS.has(industry.photo);
 
             return (
               <button
@@ -56,19 +55,17 @@ export function SectionIndustries() {
                 onMouseEnter={() => setActive(index)}
                 onFocus={() => setActive(index)}
                 onClick={() => setActive(index)}
-                className={`stw-focus group relative overflow-hidden rounded-xl bg-stw-ink text-left transition-[height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:h-full ${
+                className={`stw-focus group relative overflow-hidden rounded-xl text-left transition-[height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:h-full ${
                   expanded ? "h-[20rem]" : "h-[7.5rem]"
                 }`}
               >
-                {hasPhoto ? (
-                  <Image
-                    src={industry.photo}
-                    alt={industry.alt}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 40vw"
-                    className="object-cover"
-                  />
-                ) : null}
+                <Image
+                  src={industry.photo}
+                  alt={industry.alt}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 40vw"
+                  className="object-cover"
+                />
                 {/* Scrim carries the caption to AA over any frame of the photo. */}
                 <span
                   aria-hidden="true"

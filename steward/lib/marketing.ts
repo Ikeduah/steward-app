@@ -1,5 +1,9 @@
 // Steward is invitation-only: the public site has no self-serve sign-up, so the
 // marketing CTAs route prospects to a request for an invitation instead.
+// Public origin of the marketing site, used where a crawler needs an absolute
+// URL (the Open Graph share image). TODO(isaac): confirm the production domain.
+export const SITE_URL = "https://stward.app";
+
 export const REQUEST_ACCESS_EMAIL = "hello@stward.app";
 
 /**
