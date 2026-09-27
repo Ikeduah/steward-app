@@ -91,3 +91,13 @@ def display_name(user_id: Optional[str]) -> Optional[str]:
     if not user_id:
         return None
     return display_names([user_id]).get(user_id)
+
+
+def is_known_missing(user_id: str) -> bool:
+    """
+    True when Clerk answered and does not know this person, which in practice
+    means they have left. False when they are known, or when Clerk could not
+    be reached, so an outage is never reported as someone having left.
+    """
+    cached = _cache.get(user_id)
+    return cached is not None and cached[0] is None
