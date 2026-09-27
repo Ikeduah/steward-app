@@ -62,17 +62,23 @@ def _override_clerk_guard(request: Request):
 def client(monkeypatch):
     # Fresh in-memory SQLite per test — StaticPool keeps one connection alive
     # for the engine's lifetime so all sessions see the same schema/data.
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    # Set TEST_DATABASE_URL to an empty Postgres database to run the same
+    # suite against Postgres; its tables are created and dropped per test.
+    test_db_url = os.getenv("TEST_DATABASE_URL")
+    if test_db_url:
+        engine = create_engine(test_db_url.replace("postgresql://", "postgresql+psycopg://", 1))
+    else:
+        engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
 
-    # SQLite ignores foreign keys unless asked. Postgres enforces them, so
-    # without this a test can pass here on data production would reject.
-    @event.listens_for(engine, "connect")
-    def _enable_foreign_keys(dbapi_connection, _record):
-        dbapi_connection.execute("PRAGMA foreign_keys=ON")
+        # SQLite ignores foreign keys unless asked. Postgres enforces them, so
+        # without this a test can pass here on data production would reject.
+        @event.listens_for(engine, "connect")
+        def _enable_foreign_keys(dbapi_connection, _record):
+            dbapi_connection.execute("PRAGMA foreign_keys=ON")
 
     Base.metadata.create_all(bind=engine)
     TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)

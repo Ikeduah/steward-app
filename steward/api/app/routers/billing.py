@@ -13,6 +13,7 @@ class PlanResponse(BaseModel):
     history_days: int | float
     has_photos: bool
     has_advanced_reporting: bool
+    audit_reports_per_month: int | float
 
 @router.get("/plan", response_model=PlanResponse)
 async def get_plan(org_id: str = Depends(get_org_id)):
@@ -25,5 +26,6 @@ async def get_plan(org_id: str = Depends(get_org_id)):
         max_people=limits.max_people,
         history_days=limits.history_days,
         has_photos=limits.has_photos,
-        has_advanced_reporting=limits.has_advanced_reporting
+        has_advanced_reporting=limits.has_advanced_reporting,
+        audit_reports_per_month=limits.audit_reports_per_month
     )

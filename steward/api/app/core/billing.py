@@ -34,12 +34,15 @@ class PlanLimits:
             self.history_days = float('inf')
             self.has_photos = True
             self.has_advanced_reporting = True
+            self.audit_reports_per_month = float('inf')
         else:
             self.max_assets = 100
             self.max_people = 25
             self.history_days = 30
             self.has_photos = False
             self.has_advanced_reporting = False
+            # Calendar month, UTC. #18 moves this to the Clerk billing cycle.
+            self.audit_reports_per_month = 3
 
 # --- Simple in-memory TTL cache for plan lookups ---
 # Avoids hitting the Clerk API on every single request.

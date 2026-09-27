@@ -101,3 +101,30 @@ def is_known_missing(user_id: str) -> bool:
     """
     cached = _cache.get(user_id)
     return cached is not None and cached[0] is None
+
+
+_org_cache: Dict[str, tuple[Optional[str], float]] = {}
+
+
+def organization_name(org_id: str) -> Optional[str]:
+    """The team's name as set in Clerk, for report headers. None if unknown."""
+    now = time.monotonic()
+    cached = _org_cache.get(org_id)
+    if cached and now - cached[1] < _CACHE_TTL_S:
+        return cached[0]
+    if not CLERK_SECRET_KEY:
+        return None
+    try:
+        resp = httpx.get(
+            f"https://api.clerk.com/v1/organizations/{org_id}",
+            headers={"Authorization": f"Bearer {CLERK_SECRET_KEY}"},
+            timeout=_TIMEOUT_S,
+        )
+        if resp.status_code != 200:
+            return None
+        name = resp.json().get("name")
+        _org_cache[org_id] = (name, now)
+        return name
+    except Exception as e:
+        logger.warning("Clerk organization lookup failed: %s", type(e).__name__)
+        return None
