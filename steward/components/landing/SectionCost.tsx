@@ -21,15 +21,14 @@ export function SectionCost() {
         >
           <div className="max-w-[30rem]">
             <h2 className="text-3xl font-bold leading-[1.1] tracking-tight md:text-[2.75rem]">
-              Missing gear disrupts production and inflates costs.
+              Missing equipment costs more than the item.
             </h2>
             <p className="mt-7 text-base leading-relaxed text-[color:var(--stw-muted)]">
-              A case that cannot be found is a call sheet that slips. An item
-              nobody signed for is an item nobody replaces.
+              A laptop nobody signed for is a laptop nobody returns. A drill
+              left on the last job site is a drill you buy twice.
             </p>
             <p className="mt-4 text-base leading-relaxed text-[color:var(--stw-muted)]">
-              The cost is rarely the equipment. It is the hour the crew spends
-              looking for it.
+              The real cost is the hour your team spends looking for it.
             </p>
           </div>
         </div>

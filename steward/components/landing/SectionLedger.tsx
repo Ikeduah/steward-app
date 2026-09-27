@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { FLIP_ROW_INDEX, LEDGER_ROWS, type LedgerStatus } from "./ledgerRows";
+import { FLIP_FROM, FLIP_ROW_INDEX, LEDGER_ROWS, type LedgerStatus } from "./ledgerRows";
 
 /**
  * Section 5. Chain of custody.
@@ -10,7 +10,7 @@ import { FLIP_ROW_INDEX, LEDGER_ROWS, type LedgerStatus } from "./ledgerRows";
  * text, it reads sharper at every zoom level, and it is the one place where the
  * product's actual shape shows through.
  *
- * Hairline dividers, no per-row boxes, no charts. Emerald appears on RETURNED
+ * Hairline dividers, no per-row boxes, no charts. Emerald appears on Returned
  * and nowhere else in this section.
  */
 
@@ -28,7 +28,11 @@ function StatusCell({ status }: { status: LedgerStatus }) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className={
-        status === "RETURNED" ? "text-stw-emerald" : "text-[color:var(--stw-muted)]"
+        status === "Returned"
+          ? "text-stw-emerald"
+          : status === "Overdue"
+            ? "text-[color:var(--stw-on-surface)]"
+            : "text-[color:var(--stw-muted)]"
       }
     >
       {status}
@@ -41,11 +45,11 @@ export function SectionLedger() {
   const [settled, setSettled] = useState(false);
   const [flipped, setFlipped] = useState(false);
 
-  // One row flips from OUT to RETURNED once the ledger has finished arriving.
-  // Once, not on a loop, and never under reduced motion.
+  // One row flips to its listed status once the ledger has finished arriving.
+  // Once, not on a loop. Under reduced motion it lands without the pause.
   useEffect(() => {
-    if (!settled || reduce) return;
-    const timer = window.setTimeout(() => setFlipped(true), FLIP_DELAY_MS);
+    if (!settled) return;
+    const timer = window.setTimeout(() => setFlipped(true), reduce ? 0 : FLIP_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [settled, reduce]);
 
@@ -65,7 +69,7 @@ export function SectionLedger() {
 
       <div className="relative mx-auto max-w-[1400px] px-6 py-24 md:px-12 md:py-32">
         <h2 className="max-w-[18ch] text-3xl font-bold leading-[1.1] tracking-tight md:text-[2.75rem]">
-          Always know who has what gear.
+          Always know who has what.
         </h2>
 
         <div className="mt-14 md:mt-20 md:pr-16">
@@ -86,15 +90,15 @@ export function SectionLedger() {
                   <tr className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--stw-muted)]">
                     <th scope="col" className="px-4 py-3 font-normal">Asset</th>
                     <th scope="col" className="px-4 py-3 font-normal">Item</th>
-                    <th scope="col" className="px-4 py-3 font-normal">Person</th>
-                    <th scope="col" className="px-4 py-3 font-normal">Time</th>
+                    <th scope="col" className="px-4 py-3 font-normal">With</th>
+                    <th scope="col" className="px-4 py-3 font-normal">Where</th>
                     <th scope="col" className="px-4 py-3 text-right font-normal">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {LEDGER_ROWS.map((row, index) => {
                     const status =
-                      flipped && index === FLIP_ROW_INDEX ? "RETURNED" : row.status;
+                      index === FLIP_ROW_INDEX && !flipped ? FLIP_FROM : row.status;
 
                     return (
                       <motion.tr
@@ -125,9 +129,9 @@ export function SectionLedger() {
                           {row.assetId}
                         </td>
                         <td className="whitespace-nowrap px-4 py-4">{row.item}</td>
-                        <td className="whitespace-nowrap px-4 py-4">{row.person}</td>
+                        <td className="whitespace-nowrap px-4 py-4">{row.holder}</td>
                         <td className="whitespace-nowrap px-4 py-4 text-[color:var(--stw-muted)]">
-                          {row.timestamp}
+                          {row.where}
                         </td>
                         <td className="whitespace-nowrap px-4 py-4 text-right">
                           <StatusCell status={status} />

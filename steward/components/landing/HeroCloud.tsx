@@ -241,11 +241,11 @@ function HeroType({ lift }: { lift?: MotionValue<number> }) {
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       >
         <h1 className="font-display text-5xl font-bold leading-[1.02] tracking-tight md:text-7xl">
-          Where&rsquo;s that camera?
+          Know where every item is, and who has it.
         </h1>
         <p className="mt-6 max-w-[26rem] text-base leading-relaxed text-[color:var(--stw-muted)] md:text-lg">
-          Every item gets a tag. Every movement gets a record. Nobody has to
-          guess where the gear went.
+          Steward tracks shared equipment with QR tags, from cameras and
+          laptops to drills and radios. Scan to check out. Scan to return.
         </p>
         <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
           <Link

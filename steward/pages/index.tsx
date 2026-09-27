@@ -23,23 +23,24 @@ import { SectionClose } from "../components/landing/SectionClose";
  * logos to put there yet, and invented ones destroy credibility with the people
  * this page is written for.
  *
- * ASSET GAP: the Open Graph share image (1200x630) has not been produced. The
- * og:image tag is deliberately absent rather than pointed at a wrong-shaped
- * file, which would render worse than no card at all.
+ * ASSET GAP: the Open Graph share image (1200x630) has not been produced. It
+ * should be the hero still with the three labelled items (camera, laptop,
+ * drill kit). The og:image tag is deliberately absent rather than pointed at a
+ * wrong-shaped file, which would render worse than no card at all.
  */
 export default function Home() {
   return (
     <>
       <Head>
-        <title>Steward, equipment tracking for teams that own a lot of gear</title>
+        <title>Steward — Equipment tracking for teams that share</title>
         <meta
           name="description"
-          content="Tag every item, scan it in and out, and keep a record of who is holding what. Steward is inventory and asset tracking for production teams, live events, and IT departments."
+          content="Tag any item with a QR code. Scan to check out and return. Know where every item is and who has it."
         />
-        <meta property="og:title" content="Steward, equipment tracking for teams that own a lot of gear" />
+        <meta property="og:title" content="Steward — Equipment tracking for teams that share" />
         <meta
           property="og:description"
-          content="Tag every item, scan it in and out, and keep a record of who is holding what."
+          content="Tag any item with a QR code. Scan to check out and return. Know where every item is and who has it."
         />
         <meta property="og:type" content="website" />
       </Head>

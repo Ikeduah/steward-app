@@ -23,7 +23,7 @@ const LEAD: Step = {
   src: "/landing/photos/photo-label-printer.jpg",
   alt: "Label printer feeding out a freshly printed emerald QR asset tag on a workbench",
   title: "Tag it",
-  body: "Create rugged tags for any asset.",
+  body: "Print a QR tag for any item.",
 };
 
 const SUPPORTING: Step[] = [
@@ -31,13 +31,13 @@ const SUPPORTING: Step[] = [
     src: "/landing/photos/photo-tag-macro-case.jpg",
     alt: "Hand holding a phone to scan the QR tag on a hard case lid",
     title: "Scan it",
-    body: "Confirm check-in and check-out in seconds.",
+    body: "Check it out or back in from your phone.",
   },
   {
     src: "/landing/photos/photo-scanning-in-storage.jpg",
-    alt: "Crew member scanning tagged equipment on a shelf in a storage room",
+    alt: "Team member scanning tagged equipment on a shelf in a storage room",
     title: "Hand it off",
-    body: "Update chain of custody instantly.",
+    body: "Every hand-off is on the record.",
   },
 ];
 
@@ -99,7 +99,7 @@ export function SectionSteps() {
           System overview
         </p>
         <h2 className="mt-5 max-w-[20ch] text-3xl font-bold leading-[1.1] tracking-tight md:text-[2.75rem]">
-          Three simple steps to total gear tracking
+          Three steps to track every item you share
         </h2>
 
         <div className="mt-14 grid grid-cols-1 gap-5 md:grid-cols-[2fr_1fr] md:gap-6">

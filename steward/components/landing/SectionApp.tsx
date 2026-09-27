@@ -6,24 +6,41 @@ import Link from "next/link";
  *
  * This is the only image-and-text split on the whole page, so it gets the good
  * version: the photograph bleeds to the section edge rather than sitting in a
- * padded container, and the three supporting lines are separated by hairlines
+ * padded container, and the supporting lines are separated by hairlines
  * instead of being turned into bullets or cards.
  *
  * No eyebrow here. The page has two, and both are spent.
  */
 
+/**
+ * Only features Steward ships, plus audit export, which is planned and listed
+ * here at Isaac's request. TODO(isaac): confirm audit export is live before
+ * this page ships, or drop the last line.
+ *
+ * TODO(isaac): confirm feature. The spec line reads "who, where, and when",
+ * but check-outs do not record a location today, so "where" is left out until
+ * they do.
+ */
 const LINES = [
   {
-    title: "Scan to check out",
-    body: "Point a phone at the tag. The record is written before the case leaves the room.",
+    title: "Tag anything.",
+    body: "Print a QR tag and stick it on any item you share.",
   },
   {
-    title: "Know who is holding it",
-    body: "Every item resolves to a person, not to a shelf it is supposed to be on.",
+    title: "Check out in one scan.",
+    body: "Anyone on your team can scan with their phone. No app training.",
   },
   {
-    title: "See overdue at a glance",
-    body: "Anything past its return date surfaces on its own. Nobody has to chase a list.",
+    title: "See the full history.",
+    body: "Every hand-off is recorded: who had it, and when.",
+  },
+  {
+    title: "Know what's missing.",
+    body: "See what's out, who has it, and what's overdue.",
+  },
+  {
+    title: "Be ready for audits.",
+    body: "Export a full record of every item and who had it.",
   },
 ];
 
@@ -47,7 +64,7 @@ export function SectionApp() {
 
         <div className="px-6 pb-24 md:px-12 md:py-32 lg:px-20">
           <h2 className="max-w-[16ch] text-3xl font-bold leading-[1.1] tracking-tight md:text-[2.75rem]">
-            Geared up and accounted for. In real time.
+            Every item accounted for.
           </h2>
 
           <dl className="mt-12">
