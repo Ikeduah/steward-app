@@ -15,7 +15,7 @@ if str(API_DIR) not in sys.path:
 import pytest
 from fastapi import HTTPException, Request
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -57,6 +57,13 @@ def client(monkeypatch):
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    # SQLite ignores foreign keys unless asked. Postgres enforces them, so
+    # without this a test can pass here on data production would reject.
+    @event.listens_for(engine, "connect")
+    def _enable_foreign_keys(dbapi_connection, _record):
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
+
     Base.metadata.create_all(bind=engine)
     TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
@@ -88,6 +95,9 @@ def client(monkeypatch):
     monkeypatch.setattr("app.routers.incidents.get_org_plan", _pro_plan)
 
     with TestClient(fastapi_app) as test_client:
+        # For tests that need to read or seed rows the API cannot reach, such
+        # as a log entry older than the plan's history window.
+        test_client.session_factory = TestingSessionLocal
         yield test_client
 
     fastapi_app.dependency_overrides.clear()
