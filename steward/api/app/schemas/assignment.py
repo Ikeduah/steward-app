@@ -23,6 +23,10 @@ class AssignmentResponse(AssignmentBase):
     id: int
     org_id: str
     assigned_by: str
+    assigned_to_name: Optional[str] = None
+    assigned_by_name: Optional[str] = None
+    received_by: Optional[str] = None
+    received_by_name: Optional[str] = None
     checked_out_at: datetime
     actual_return_at: Optional[datetime] = None
     status: str

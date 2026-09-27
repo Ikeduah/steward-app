@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from app.core.debs import get_db
 from app.core.security import clerk_guard, ClerkCredentials
 from app.core.notifications import send_checkout_notification, send_checkin_notification
+from app.core.people import display_name, display_names
 from app.models.assignment import Assignment
 from app.models.asset import Asset
 from app.models.activity import ActivityLog
@@ -34,10 +35,13 @@ def checkout_asset(
         raise HTTPException(status_code=400, detail=f"Asset is not available for checkout. Current status: {asset.status}")
     
     # 3. Create assignment
+    names = display_names([assignment.assigned_to, admin_id])
     db_assignment = Assignment(
         **assignment.model_dump(),
         org_id=org_id,
         assigned_by=admin_id,
+        assigned_to_name=names.get(assignment.assigned_to),
+        assigned_by_name=names.get(admin_id),
         checked_out_at=datetime.now(timezone.utc),
         status="Active"
     )
@@ -57,6 +61,7 @@ def checkout_asset(
         event_type="checked_out",
         details={
             "assigned_to": assignment.assigned_to,
+            "assigned_to_name": names.get(assignment.assigned_to),
             "expected_return_at": assignment.expected_return_at.isoformat() if assignment.expected_return_at else None
         }
     )
@@ -100,6 +105,8 @@ def checkin_asset(
     # 2. Update assignment status
     assignment.status = "Returned"
     assignment.actual_return_at = datetime.now(timezone.utc)
+    assignment.received_by = user_id
+    assignment.received_by_name = display_name(user_id)
     
     # 3. Update asset status
     asset = db.query(Asset).filter(Asset.id == asset_id).first()

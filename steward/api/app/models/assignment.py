@@ -12,6 +12,14 @@ class Assignment(Base):
     asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
     assigned_to = Column(String, nullable=False)  # Clerk User ID
     assigned_by = Column(String, nullable=False)  # Clerk Admin ID
+    # Who took the item back: the holder, or an admin returning it for them.
+    received_by = Column(String, nullable=True)  # Clerk User ID
+
+    # Names at the time, so the record survives people leaving or renaming.
+    # Null if Clerk could not be reached; exports look them up then.
+    assigned_to_name = Column(String, nullable=True)
+    assigned_by_name = Column(String, nullable=True)
+    received_by_name = Column(String, nullable=True)
     
     checked_out_at = Column(DateTime(timezone=True), server_default=func.now())
     expected_return_at = Column(DateTime(timezone=True), nullable=True)

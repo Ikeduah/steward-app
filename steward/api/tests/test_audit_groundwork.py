@@ -1,16 +1,14 @@
 """
-Pins down how the record behaves today, before the audit export (#17) builds
-on it.
+Pins down how the record behaves, for the audit export (#17) to build on.
 
-Each test states current behaviour, including the gaps #17 fixes. When a later
-step changes that behaviour on purpose, update the test in the same PR so the
-change is visible in the diff rather than silent.
+Step 1 wrote these against the old behaviour, gaps included. Step 2 fixed the
+gaps and updated the tests that described them; each says what it used to be.
+When a later step changes behaviour on purpose, update the test in the same PR
+so the change is visible in the diff rather than silent.
 """
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
-from sqlalchemy.exc import IntegrityError
 
 from conftest import auth_headers
 from app.core.billing import PlanType
@@ -74,17 +72,18 @@ def test_checkout_records_who_handed_it_out_and_to_whom(client, monkeypatch):
     assert log["details"]["expected_return_at"].startswith("2030-01-15T17:00")
 
 
-def test_records_store_login_ids_not_names(client, monkeypatch):
-    # Gap: an export has to turn these into names, and a person who has left
-    # the team can no longer be looked up.
+def test_records_keep_the_names_people_had_at_the_time(client, monkeypatch):
+    # Was a gap in step 1: records held only Clerk IDs.
     _pro_plan(monkeypatch)
     asset = _create_asset(client)
-    _checkout(client, asset["id"])
+    assignment = _checkout(client, asset["id"])
 
+    assert assignment["assigned_to_name"] == "Mo Member"
+    assert assignment["assigned_by_name"] == "Ada Admin"
     log = _logs(client, event_type="checked_out")[0]
-    assert log["actor_id"].startswith("user_")
-    assert log["details"]["assigned_to"].startswith("user_")
-    assert "actor_name" not in log
+    assert log["actor_id"] == "user_admin_a"
+    assert log["actor_name"] == "Ada Admin"
+    assert log["details"]["assigned_to_name"] == "Mo Member"
 
 
 def test_return_by_the_holder_is_logged_as_the_holder(client, monkeypatch):
@@ -95,56 +94,76 @@ def test_return_by_the_holder_is_logged_as_the_holder(client, monkeypatch):
 
     assert returned["status"] == "Returned"
     assert returned["actual_return_at"] is not None
+    assert returned["received_by"] == "user_member_a"
     log = _logs(client, event_type="checked_in")[0]
     assert log["actor_id"] == "user_member_a"
 
 
-def test_return_by_an_admin_is_logged_as_the_admin_but_not_on_the_checkout(client, monkeypatch):
-    # Gap: the check-out row has no "received by". The only trace of who took
-    # the item back is the checked_in log entry, which is what #17 backfills
-    # received_by from.
+def test_return_by_an_admin_records_the_admin_as_receiver(client, monkeypatch):
+    # Was a gap in step 1: the check-out row did not say who took it back.
     _pro_plan(monkeypatch)
     asset = _create_asset(client)
     _checkout(client, asset["id"])
     returned = _checkin(client, asset["id"], "admin_org_a")
 
-    assert "received_by" not in returned
+    assert returned["received_by"] == "user_admin_a"
+    assert returned["received_by_name"] == "Ada Admin"
     log = _logs(client, event_type="checked_in")[0]
     assert log["actor_id"] == "user_admin_a"
 
 
-# ---- deleting an item ----------------------------------------------------------
+# ---- retiring, not deleting ------------------------------------------------------
 
 
-def test_deleting_an_item_with_no_history_removes_it_and_logs_it(client, monkeypatch):
-    _pro_plan(monkeypatch)
+def test_items_can_no_longer_be_deleted(client):
+    # Was: delete worked for unused items and errored for used ones.
     asset = _create_asset(client)
 
     resp = client.delete(f"/api/assets/{asset['id']}", headers=auth_headers("admin_org_a"))
-    assert resp.status_code == 200
-
-    assert client.get(f"/api/assets/{asset['id']}", headers=auth_headers("admin_org_a")).status_code == 404
-    log = _logs(client, event_type="deleted")[0]
-    assert log["asset_name"] == "Camera"
+    assert resp.status_code == 405
+    assert client.get(f"/api/assets/{asset['id']}", headers=auth_headers("admin_org_a")).status_code == 200
 
 
-def test_deleting_an_item_that_was_ever_checked_out_fails(client):
-    # Gap: on delete, SQLAlchemy detaches the item's check-outs by clearing
-    # their asset_id, which is NOT NULL, so the database refuses and the whole
-    # request errors (Postgres rejects it the same way). Nothing is lost, but
-    # nothing is logged either, and the admin sees a server error. #17
-    # replaces delete with retire.
+def test_retiring_an_item_keeps_it_and_its_history(client, monkeypatch):
+    _pro_plan(monkeypatch)
     asset = _create_asset(client)
     _checkout(client, asset["id"])
     _checkin(client, asset["id"], "admin_org_a")
 
-    with pytest.raises(IntegrityError):
-        client.delete(f"/api/assets/{asset['id']}", headers=auth_headers("admin_org_a"))
+    resp = client.post(f"/api/assets/{asset['id']}/retire", headers=auth_headers("admin_org_a"))
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "Retired"
 
     with client.session_factory() as db:
         assert db.query(Asset).filter(Asset.id == asset["id"]).count() == 1
         assert db.query(Assignment).filter(Assignment.asset_id == asset["id"]).count() == 1
-        assert db.query(ActivityLog).filter(ActivityLog.event_type == "deleted").count() == 0
+    log = _logs(client, event_type="retired")[0]
+    assert log["asset_name"] == "Camera"
+    assert log["details"] == {"previous_status": "Available"}
+
+
+def test_a_checked_out_item_cannot_be_retired(client):
+    asset = _create_asset(client)
+    _checkout(client, asset["id"])
+
+    resp = client.post(f"/api/assets/{asset['id']}/retire", headers=auth_headers("admin_org_a"))
+    assert resp.status_code == 409
+
+
+def test_retiring_twice_is_harmless_and_logged_once(client, monkeypatch):
+    _pro_plan(monkeypatch)
+    asset = _create_asset(client)
+    for _ in range(2):
+        resp = client.post(f"/api/assets/{asset['id']}/retire", headers=auth_headers("admin_org_a"))
+        assert resp.status_code == 200
+
+    assert len(_logs(client, event_type="retired")) == 1
+
+
+def test_other_teams_cannot_retire_an_item(client):
+    asset = _create_asset(client)
+    resp = client.post(f"/api/assets/{asset['id']}/retire", headers=auth_headers("admin_org_b"))
+    assert resp.status_code == 404
 
 
 # ---- who can see history, and how far back ------------------------------------
@@ -203,8 +222,8 @@ def test_activity_history_never_shows_another_teams_records(client, monkeypatch)
 
 
 def test_no_endpoint_edits_or_deletes_log_entries(client):
-    # Today the log is only ever added to, but only by convention: nothing in
-    # the database stops an update or delete. #17 enforces it.
+    # The API offers no way to change the log. test_audit_record.py covers the
+    # rule underneath that, for code that bypasses the API.
     from index import app
 
     log_routes = [

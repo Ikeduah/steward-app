@@ -83,8 +83,10 @@ async def create_asset(
     user_id: str = Depends(get_user_id),
     _: bool = Depends(require_admin)
 ):
-    # Enforce asset limit for organization
-    asset_count = db.query(Asset).filter(Asset.org_id == org_id).count()
+    # Enforce asset limit for organization. Retired items stay on the record
+    # but no longer count: items cannot be deleted, so counting them would
+    # leave a team at its limit for good.
+    asset_count = db.query(Asset).filter(Asset.org_id == org_id, Asset.status != "Retired").count()
     await check_limit(org_id, asset_count, "max_assets")
     
     if asset.qr_code:
@@ -167,28 +169,47 @@ def update_asset(
     db.refresh(db_asset)
     return db_asset
 
-@router.delete("/{asset_id}")
-def delete_asset(
+@router.post("/{asset_id}/retire", response_model=AssetResponse)
+def retire_asset(
     asset_id: int,
     db: Session = Depends(get_db),
     org_id: str = Depends(get_org_id),
     user_id: str = Depends(get_user_id),
     _: bool = Depends(require_admin)
 ):
+    """
+    Takes an item out of use while keeping it, and its history, on the record.
+
+    Items are never deleted: an audit has to be able to show every item that
+    was ever handed out and who had it.
+    """
     db_asset = db.query(Asset).filter(Asset.id == asset_id, Asset.org_id == org_id).first()
     if not db_asset:
         raise HTTPException(status_code=404, detail="Asset not found")
-    
-    # Log activity BEFORE deletion
+
+    if db_asset.status == "Checked Out":
+        raise HTTPException(
+            status_code=409,
+            detail="This item is checked out. Check it in before retiring it."
+        )
+
+    if db_asset.status == "Retired":
+        return db_asset
+
+    previous_status = db_asset.status
+    db_asset.status = "Retired"
+    db_asset.updated_by = user_id
+
     log = ActivityLog(
         org_id=org_id,
         asset_id=db_asset.id,
         asset_name=db_asset.name,
         actor_id=user_id,
-        event_type="deleted"
+        event_type="retired",
+        details={"previous_status": previous_status}
     )
     db.add(log)
-    
-    db.delete(db_asset)
+
     db.commit()
-    return {"message": "Asset deleted successfully"}
+    db.refresh(db_asset)
+    return db_asset

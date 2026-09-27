@@ -42,7 +42,7 @@ def test_org_isolation_on_list_and_get(client):
     assert resp.status_code == 404
 
 
-def test_member_cannot_update_or_delete_asset(client):
+def test_member_cannot_update_or_retire_asset(client):
     created = client.post(
         "/api/assets",
         json={"name": "Org A Camera"},
@@ -56,8 +56,8 @@ def test_member_cannot_update_or_delete_asset(client):
     )
     assert resp.status_code == 403
 
-    resp = client.delete(
-        f"/api/assets/{created['id']}",
+    resp = client.post(
+        f"/api/assets/{created['id']}/retire",
         headers=auth_headers("member_org_a"),
     )
     assert resp.status_code == 403

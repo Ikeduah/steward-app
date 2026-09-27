@@ -24,6 +24,16 @@ from app.core.db import Base
 from app.core.debs import get_db
 from app.core.security import clerk_guard, ClerkCredentials
 from app.core.billing import PlanType
+from app.core import people
+
+# What the stubbed Clerk lookup knows. user_gone_a is deliberately missing, to
+# stand in for someone who has left the team.
+PERSON_NAMES = {
+    "user_admin_a": "Ada Admin",
+    "user_member_a": "Mo Member",
+    "user_member2_a": "Mia Member",
+    "user_admin_b": "Bea Admin",
+}
 
 # Fake org-claims personas. `sub` values are reused as `assigned_to` targets
 # in assignment tests, so ownership checks line up naturally.
@@ -93,6 +103,10 @@ def client(monkeypatch):
     monkeypatch.setattr("app.routers.incidents.send_incident_notification", _noop)
     monkeypatch.setattr("app.routers.assets.check_limit", _no_limit)
     monkeypatch.setattr("app.routers.incidents.get_org_plan", _pro_plan)
+    monkeypatch.setattr(
+        people, "_fetch_names", lambda ids: {uid: PERSON_NAMES.get(uid) for uid in ids}
+    )
+    people._cache.clear()
 
     with TestClient(fastapi_app) as test_client:
         # For tests that need to read or seed rows the API cannot reach, such

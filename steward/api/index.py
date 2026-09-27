@@ -17,6 +17,7 @@ from app.routers import assets, assignments, activity, incidents, billing, inter
 from app.models.assignment import Assignment 
 from app.models.activity import ActivityLog 
 from app.models.incident import Incident
+from app.models.audit_export import AuditExport
 
 logger = logging.getLogger(__name__)
 

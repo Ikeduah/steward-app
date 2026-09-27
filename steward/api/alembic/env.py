@@ -22,7 +22,7 @@ from app.core.db import Base  # noqa: E402
 from app.core.config import get_database_url  # noqa: E402
 
 # Import model modules so their tables register on Base.metadata.
-from app.models import asset, assignment, incident, activity  # noqa: E402,F401
+from app.models import asset, assignment, incident, activity, audit_export  # noqa: E402,F401
 
 config = context.config
 

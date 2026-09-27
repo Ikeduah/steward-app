@@ -15,6 +15,7 @@ class ActivityLogResponse(ActivityLogBase):
     id: int
     org_id: str
     actor_id: str
+    actor_name: Optional[str] = None
     created_at: datetime
 
     class Config:

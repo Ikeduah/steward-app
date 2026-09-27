@@ -3,7 +3,7 @@ import useSWR from "swr";
 import { useAuth } from "@clerk/nextjs";
 import { Layout } from "../../components/Layout";
 import { AssetFormModal } from "../../components/AssetFormModal";
-import { Plus, Search, Filter, QrCode, Edit2, Trash2, CheckSquare, Square, AlertTriangle } from "lucide-react";
+import { Plus, Search, Filter, QrCode, Edit2, Archive, CheckSquare, Square, AlertTriangle } from "lucide-react";
 import { IncidentModal } from "../../components/IncidentModal";
 
 // Fetcher for SWR
@@ -41,42 +41,34 @@ export default function AssetsPage() {
         }
     };
 
-    const handleBulkDelete = async () => {
-        if (!confirm(`Delete ${selectedIds.length} asset(s)?`)) return;
+    // Items are retired, never deleted: an audit has to be able to show every
+    // item that was ever handed out and who had it. The ids are passed in
+    // rather than read from selectedIds, so a row's own button acts on that row
+    // instead of on whatever was selected before the state update lands.
+    const handleRetire = async (ids: number[]) => {
+        const label = ids.length === 1 ? "this item" : `${ids.length} items`;
+        if (!confirm(`Retire ${label}? Retired items stay on the record with their history, and can't be checked out.`)) return;
 
         try {
             const token = await getToken();
-            // Collect blob images to clean up once the assets are deleted.
-            const blobUrls = Array.isArray(assets)
-                ? assets
-                      .filter((a: any) => selectedIds.includes(a.id) && typeof a.image_url === "string" && a.image_url.includes(".blob.vercel-storage.com/"))
-                      .map((a: any) => a.image_url as string)
-                : [];
-
-            await Promise.all(
-                selectedIds.map(id =>
-                    fetch(`/api/assets/${id}`, {
-                        method: "DELETE",
+            const results = await Promise.all(
+                ids.map(id =>
+                    fetch(`/api/assets/${id}/retire`, {
+                        method: "POST",
                         headers: { Authorization: `Bearer ${token}` },
                     })
                 )
             );
 
-            // Best-effort blob cleanup — a leaked blob is non-fatal.
-            await Promise.all(
-                blobUrls.map(url =>
-                    fetch("/api/assets/delete-blob", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ url }),
-                    }).catch(() => {})
-                )
-            );
+            const stillOut = results.filter(r => r.status === 409).length;
+            const failed = results.filter(r => !r.ok && r.status !== 409).length;
+            if (stillOut) alert(`${stillOut} item(s) are checked out. Check them in before retiring them.`);
+            if (failed) alert(`${failed} item(s) could not be retired.`);
 
             setSelectedIds([]);
             mutate();
         } catch (err) {
-            alert("Failed to delete assets");
+            alert("Failed to retire items");
         }
     };
 
@@ -151,11 +143,11 @@ export default function AssetsPage() {
 
                         {selectedIds.length > 0 && (
                             <button
-                                onClick={handleBulkDelete}
+                                onClick={() => handleRetire(selectedIds)}
                                 className="flex items-center gap-1 text-[10px] text-red-600 hover:text-red-700 transition-colors"
                             >
-                                <Trash2 className="w-4 h-4" />
-                                <span>Delete Selected</span>
+                                <Archive className="w-4 h-4" />
+                                <span>Retire Selected</span>
                             </button>
                         )}
                     </div>
@@ -218,7 +210,7 @@ export default function AssetsPage() {
                                                 <div className="flex items-center justify-end gap-2 text-xs">
                                                     <button title="Report Issue" onClick={() => { setAssetForIncident(asset); setIsIncidentModalOpen(true); }} className="text-amber-600 hover:bg-amber-50 p-1.5 rounded-lg transition-colors"><AlertTriangle className="w-4 h-4" /></button>
                                                     <button title="Edit Asset" onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} className="text-gray-600 hover:bg-gray-50 p-1.5 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
-                                                    <button title="Delete Asset" onClick={() => { if (confirm('Delete this asset?')) { setSelectedIds([asset.id]); handleBulkDelete(); } }} className="text-red-400 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                                    <button title="Retire item" onClick={() => handleRetire([asset.id])} className="text-red-400 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Archive className="w-4 h-4" /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -267,7 +259,7 @@ export default function AssetsPage() {
                                         <div className="flex items-center gap-1">
                                             <button title="Report Issue" onClick={() => { setAssetForIncident(asset); setIsIncidentModalOpen(true); }} className="p-2 text-amber-600 transition-colors hover:bg-amber-50 rounded-lg"><AlertTriangle className="w-4 h-4" /></button>
                                             <button title="Edit Asset" onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} className="p-2 text-gray-600 transition-colors hover:bg-gray-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
-                                            <button title="Delete Asset" onClick={() => { if (confirm('Delete this asset?')) { setSelectedIds([asset.id]); handleBulkDelete(); } }} className="p-2 text-red-400 transition-colors hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                            <button title="Retire item" onClick={() => handleRetire([asset.id])} className="p-2 text-red-400 transition-colors hover:bg-red-50 rounded-lg"><Archive className="w-4 h-4" /></button>
                                         </div>
                                     </div>
                                 </div>
