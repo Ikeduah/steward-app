@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from typing import List, Optional
 
 
@@ -9,10 +10,24 @@ from app.core.debs import get_db
 from app.core.security import clerk_guard, ClerkCredentials
 from app.models.asset import Asset
 from app.models.activity import ActivityLog
+from app.models.category import Category
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse
 from app.core.billing import check_limit
 
 router = APIRouter()
+
+# Value of ?category_id= that lists assets with no category.
+UNCATEGORIZED = "none"
+
+
+def _get_org_category(db: Session, org_id: str, category_id: Optional[int]) -> Optional[Category]:
+    """The category an asset is being given, checked to belong to the same org."""
+    if category_id is None:
+        return None
+    category = db.query(Category).filter(Category.id == category_id, Category.org_id == org_id).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="That category doesn't exist.")
+    return category
 
 def get_org_id(creds: ClerkCredentials = Depends(clerk_guard)) -> str:
     claims = creds.decoded
@@ -62,13 +77,29 @@ def require_admin(creds: ClerkCredentials = Depends(clerk_guard)):
 def get_assets(
     status: Optional[str] = None,
     search: Optional[str] = None,
+    category_id: Optional[str] = None,
     db: Session = Depends(get_db),
     org_id: str = Depends(get_org_id)
 ):
     query = db.query(Asset).filter(Asset.org_id == org_id)
-    
+
     if status:
         query = query.filter(Asset.status == status)
+
+    if category_id == UNCATEGORIZED:
+        query = query.filter(Asset.category_id.is_(None))
+    elif category_id:
+        try:
+            wanted = int(category_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="category_id must be a number or 'none'.")
+        # A top-level category also matches the assets in its subcategories.
+        subcategories = select(Category.id).where(
+            Category.org_id == org_id, Category.parent_id == wanted
+        )
+        query = query.filter(
+            (Asset.category_id == wanted) | Asset.category_id.in_(subcategories)
+        )
     
     if search:
         query = query.filter(Asset.name.ilike(f"%{search}%"))
@@ -91,7 +122,9 @@ async def create_asset(
         existing = db.query(Asset).filter(Asset.org_id == org_id, Asset.qr_code == asset.qr_code).first()
         if existing:
             raise HTTPException(status_code=400, detail="This identifier (QR code) is already in use by another asset.")
-    
+
+    _get_org_category(db, org_id, asset.category_id)
+
     db_asset = Asset(**asset.model_dump(), org_id=org_id, created_by=user_id)
     db.add(db_asset)
     db.flush() # Get ID
@@ -142,6 +175,22 @@ def update_asset(
     
     previous_status = db_asset.status
     update_data = asset_update.model_dump(exclude_unset=True)
+
+    # Category moves get their own log entry, with names, so the history reads
+    # "Lenses -> Cinema lenses" rather than just "updated".
+    category_change = None
+    if "category_id" in update_data and update_data["category_id"] != db_asset.category_id:
+        new_category = _get_org_category(db, org_id, update_data["category_id"])
+        # Only for the log message, so a missing old category never blocks the save.
+        old_category = (
+            db.query(Category).filter(Category.id == db_asset.category_id, Category.org_id == org_id).first()
+            if db_asset.category_id else None
+        )
+        category_change = {
+            "previous_category": old_category.name if old_category else None,
+            "new_category": new_category.name if new_category else None,
+        }
+
     for key, value in update_data.items():
         setattr(db_asset, key, value)
     
@@ -162,7 +211,17 @@ def update_asset(
         }
     )
     db.add(log)
-    
+
+    if category_change:
+        db.add(ActivityLog(
+            org_id=org_id,
+            asset_id=db_asset.id,
+            asset_name=db_asset.name,
+            actor_id=user_id,
+            event_type="category_changed",
+            details=category_change,
+        ))
+
     db.commit()
     db.refresh(db_asset)
     return db_asset

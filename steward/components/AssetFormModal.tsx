@@ -3,6 +3,7 @@ import { useAuth } from "@clerk/nextjs";
 import { X, Upload, Loader2, Printer, Trash2 } from "lucide-react";
 import { upload } from "@vercel/blob/client";
 import AssetTagCard from "./AssetTagCard";
+import { categoryOptions, useCategories } from "../lib/categories";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB — matches the upload-url server limit
 
@@ -27,6 +28,7 @@ interface Asset {
     status: string;
     qr_code: string;
     image_url: string;
+    category_id?: number | null;
 }
 
 interface AssetFormModalProps {
@@ -38,16 +40,25 @@ interface AssetFormModalProps {
 
 export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormModalProps) {
     const { getToken } = useAuth();
+    const { categories } = useCategories();
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState("");
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        description: string;
+        status: string;
+        qr_code: string;
+        image_url: string;
+        category_id: number | null;
+    }>({
         name: "",
         description: "",
         status: "Available",
         qr_code: "",
         image_url: "",
+        category_id: null,
     });
 
     // The image URL the asset had when the modal opened (persisted value).
@@ -65,6 +76,7 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                 status: asset.status || "Available",
                 qr_code: asset.qr_code || "",
                 image_url: asset.image_url || "",
+                category_id: asset.category_id ?? null,
             });
             initialImageUrlRef.current = asset.image_url || "";
         } else {
@@ -75,6 +87,7 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                 status: "Available",
                 qr_code: `QR-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 image_url: "",
+                category_id: null,
             });
             initialImageUrlRef.current = "";
         }
@@ -323,6 +336,26 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
                             placeholder="e.g., MacBook Pro 16-inch"
                             disabled={loading}
                         />
+                    </div>
+
+                    {/* Category */}
+                    <div className="space-y-1.5">
+                        <label htmlFor="asset-category" className="text-xs font-bold text-gray-700 ml-1">Category</label>
+                        <select
+                            id="asset-category"
+                            value={formData.category_id ?? ""}
+                            onChange={(e) => setFormData({ ...formData, category_id: e.target.value ? Number(e.target.value) : null })}
+                            className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-black/5 focus:border-black outline-none transition-all text-sm"
+                            disabled={loading}
+                        >
+                            <option value="">No category</option>
+                            {categoryOptions(categories).map((o) => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                        </select>
+                        {categories.length === 0 && (
+                            <p className="text-[11px] text-gray-400 ml-1">No categories yet. Add them with the Categories button on the Assets page.</p>
+                        )}
                     </div>
 
                     {/* Status */}

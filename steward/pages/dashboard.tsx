@@ -106,6 +106,9 @@ export default function Dashboard() {
                 return { label: 'Returned', color: 'bg-emerald-50 text-emerald-700', msg: 'Returned to stock' };
             case 'deleted':
                 return { label: 'Deleted', color: 'bg-gray-100 text-gray-700', msg: 'Removed from system' };
+            case 'category_changed':
+                if (d.reason === 'category_deleted') return { label: 'Category', color: 'bg-violet-50 text-violet-700', msg: 'Category deleted, now uncategorized' };
+                return { label: 'Category', color: 'bg-violet-50 text-violet-700', msg: d.new_category ? `Moved to ${d.new_category}` : 'Category removed' };
             case 'incident_reported':
                 return { label: 'Issue', color: 'bg-orange-50 text-orange-700', msg: d.title || 'New incident reported' };
             case 'incident_updated':

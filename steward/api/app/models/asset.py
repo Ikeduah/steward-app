@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey
 from sqlalchemy.sql import func
 from app.core.db import Base
 
@@ -14,7 +14,16 @@ class Asset(Base):
     
     qr_code = Column(String, unique=True, index=True, nullable=True)
     image_url = Column(String, nullable=True)
-    
+
+    # Optional category or subcategory. SET NULL: deleting a category leaves
+    # its assets uncategorized rather than blocking or deleting them.
+    category_id = Column(
+        Integer,
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+
     # User tracking
     created_by = Column(String, nullable=True)  # Clerk User ID
     updated_by = Column(String, nullable=True)  # Clerk User ID
