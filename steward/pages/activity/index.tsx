@@ -17,7 +17,8 @@ import {
     Loader2,
     Calendar,
     Clock,
-    AlertTriangle
+    AlertTriangle,
+    Tag
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 20;
@@ -97,6 +98,20 @@ export default function ActivityPage() {
                     icon: Trash2,
                     description: (name: string) => `removed "${name}" from inventory`
                 };
+            case 'category_changed': {
+                const to = log.details?.new_category;
+                const fromDeleted = log.details?.reason === 'category_deleted';
+                return {
+                    label: 'Category',
+                    color: 'bg-violet-50 text-violet-700',
+                    icon: Tag,
+                    description: (name: string) => fromDeleted
+                        ? `"${name}" became uncategorized when "${log.details?.previous_category}" was deleted`
+                        : to
+                            ? `moved "${name}" to ${to}`
+                            : `removed the category from "${name}"`
+                };
+            }
             case 'incident_reported':
                 return {
                     label: 'Incident',

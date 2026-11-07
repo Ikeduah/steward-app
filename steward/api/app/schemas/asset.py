@@ -8,6 +8,7 @@ class AssetBase(BaseModel):
     status: Optional[str] = "Available"
     qr_code: Optional[str] = None
     image_url: Optional[str] = None
+    category_id: Optional[int] = None
 
 class AssetCreate(AssetBase):
     pass

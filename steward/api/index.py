@@ -13,10 +13,11 @@ sys.path.append(str(Path(__file__).parent))
 from app.core.security import clerk_guard
 from app.core.config import get_database_url
 from app.core.db import Base, engine
-from app.routers import assets, assignments, activity, incidents, billing, internal, public
+from app.routers import assets, assignments, activity, incidents, billing, internal, public, categories
 from app.models.assignment import Assignment 
 from app.models.activity import ActivityLog 
 from app.models.incident import Incident
+from app.models.category import Category
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # filesystem), and everything else under /api/* is rewritten to this app.
 # In local dev the same /api prefix is preserved by the next.config.ts proxy.
 app.include_router(assets.router, prefix="/api/assets", tags=["Assets"])
+app.include_router(categories.router, prefix="/api/categories", tags=["Categories"])
 app.include_router(assignments.router, prefix="/api/assignments", tags=["Assignments"])
 app.include_router(activity.router, prefix="/api/activity", tags=["Activity"])
 app.include_router(incidents.router, prefix="/api/incidents", tags=["Incidents"])
