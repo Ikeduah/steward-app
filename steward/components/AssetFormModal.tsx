@@ -3,6 +3,7 @@ import { useAuth } from "@clerk/nextjs";
 import { X, Upload, Loader2, Printer, Trash2 } from "lucide-react";
 import { upload } from "@vercel/blob/client";
 import AssetTagCard from "./AssetTagCard";
+import { orgBlobPathname } from "../lib/blobAccess";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB — matches the upload-url server limit
 
@@ -37,7 +38,7 @@ interface AssetFormModalProps {
 }
 
 export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormModalProps) {
-    const { getToken } = useAuth();
+    const { getToken, orgId } = useAuth();
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState("");
@@ -100,12 +101,17 @@ export function AssetFormModal({ isOpen, onClose, asset, onSuccess }: AssetFormM
             setError("Image must be under 5MB.");
             return;
         }
+        if (!orgId) {
+            setError("Select an organization before uploading an image.");
+            return;
+        }
         setError("");
         setUploading(true);
         // The previous session upload becomes an orphan once we replace it.
         const previousPending = pendingUploadRef.current;
         try {
-            const blob = await upload(file.name, file, {
+            // Photos live under the org's own folder; the server rejects any other path.
+            const blob = await upload(orgBlobPathname(orgId, file.name), file, {
                 access: "public",
                 handleUploadUrl: "/api/assets/upload-url",
             });
